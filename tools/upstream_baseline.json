@@ -3,7 +3,7 @@
   "branch": "main",
   "reviewed_through": "7805bb94843d91cb9937f57264ca52642164499b",
   "reviewed_date": "2026-09-04",
-  "notes": "Fork is currently level with upstream at this commit (fork HEAD == upstream/main tip). Later commits, pull requests, and issues need review before the watermarks advance.",
-  "reviewed_pr_through": 483,
-  "reviewed_issue_through": 482
+  "notes": "Fork HEAD == upstream/main tip at this commit, which is upstream PR #462 -- so every pull request merged through #462 is literally present in this tree and needs no porting. That is what reviewed_pr_through records; it is not a claim that anyone read the open ones. Upstream PRs above #462 are unmerged work and are NOT reviewed: #470, #447, #442, #430, #410, #409, #403 were open as of 2026-09-04. reviewed_issue_through is 0 because no upstream issue has been triaged against this fork yet. Two upstream branches carry work that never became a pull request, so no watermark would ever surface them; they were restored to this fork as upstream-review/feature-nvidia-nim-integration (15 commits, NVIDIA NIM integration) and upstream-review/revert-306-oss-release-2026-07-23 (1 commit, a revert of merged PR #306), judged on 2026-09-04, and deleted again once their verdicts were on record. All 36 branches this fork inherited now have written verdicts in docs/UPSTREAM.md. A branch counts as processed only when its verdict is written down, so record the verdict before deleting anything.",
+  "reviewed_pr_through": 462,
+  "reviewed_issue_through": 0
 }
