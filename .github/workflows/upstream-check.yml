@@ -43,17 +43,25 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Deliberately no --strict. With it, the job stays red for as long as any
+      # upstream pull request or issue sits above the watermark -- and for a fork
+      # that is level with upstream's main, that is the normal state, not an
+      # incident: eight upstream PRs are open and no issue has been triaged yet.
+      # A check that is red by construction is one people learn to scroll past.
+      # Drift belongs in the job summary; the job itself fails only when the
+      # checker could not run at all (exit 2: git fetch or gh enumeration failed),
+      # which is the condition that actually needs someone's attention.
       - name: Check upstream
         id: upstream
         continue-on-error: true
-        run: python tools/check_upstream_updates.py --strict
+        run: python tools/check_upstream_updates.py
 
       - name: Publish report
         if: always()
         run: cat upstream-review-report.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Require review when upstream changed
+      - name: Fail when the check itself could not run
         if: steps.upstream.outcome == 'failure'
         run: |
-          echo "::error::Upstream changed or the check failed. Review the workflow summary."
+          echo "::error::The upstream check could not complete (git fetch or gh enumeration failed). Review the workflow summary."
           exit 1
