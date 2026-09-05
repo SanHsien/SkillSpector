@@ -44,6 +44,12 @@ from skillspector.state import (
     SkillspectorState,
     WorkflowResourceBudget,
 )
+from tests.platform_support import (
+    HAS_MKFIFO,
+    SKIP_NO_MKFIFO,
+    SKIP_NO_SYMLINK,
+    SYMLINKS_SUPPORTED,
+)
 
 _OMS_FIXTURE = Path(__file__).parents[1] / "fixtures" / "oms" / "mcore-split-pr.skill.oms.sig"
 # Pinned from NVIDIA/skills at commit 1f01acfe1aece58ba95d124eafdfb5bb93523db6:
@@ -969,6 +975,12 @@ def test_build_context_reports_read_error_without_fake_empty_content(
         raise PermissionError("sensitive operating-system detail")
 
     monkeypatch.setattr("skillspector.input_handler.os.open", deny_open)
+    # Windows never reaches the os.open path: _open_regular_file_no_follow falls
+    # through to the handle-based opener. Deny that too so the same read failure
+    # is exercised on every platform.
+    monkeypatch.setattr(
+        "skillspector.input_handler._open_regular_file_from_windows_handle", deny_open
+    )
     result = build_context({"skill_path": str(tmp_path)})
 
     assert "broken.py" in result["components"]
@@ -1033,6 +1045,7 @@ def test_build_context_records_stat_errors_in_the_ledger(
     assert event["error_class"] == "PermissionError"
 
 
+@pytest.mark.skipif(not HAS_MKFIFO, reason=SKIP_NO_MKFIFO)
 def test_build_context_records_non_regular_entries_in_the_ledger(tmp_path: Path) -> None:
     """A discovered FIFO is retained as failed ledger evidence, never silently skipped."""
     fifo = tmp_path / "inspection.pipe"
@@ -1048,6 +1061,7 @@ def test_build_context_records_non_regular_entries_in_the_ledger(tmp_path: Path)
     assert event["reason_code"] == "not_regular_file"
 
 
+@pytest.mark.skipif(not SYMLINKS_SUPPORTED, reason=SKIP_NO_SYMLINK)
 def test_build_context_rejects_symlink_to_external_file(tmp_path: Path) -> None:
     """A symlinked file outside skill_dir must not enter the component cache."""
     secret = tmp_path.parent / "external_secret.txt"
@@ -1065,6 +1079,7 @@ def test_build_context_rejects_symlink_to_external_file(tmp_path: Path) -> None:
     assert all("hunter2" not in content for content in result["file_cache"].values())
 
 
+@pytest.mark.skipif(not SYMLINKS_SUPPORTED, reason=SKIP_NO_SYMLINK)
 def test_build_context_rejects_symlinked_directory(tmp_path: Path) -> None:
     """A symlinked subdirectory outside skill_dir must not be traversed."""
     external = tmp_path.parent / "external_dir"
@@ -1103,6 +1118,7 @@ def test_build_context_rejects_junctioned_directory(
     assert event["reason_code"] == "not_regular_file"
 
 
+@pytest.mark.skipif(not SYMLINKS_SUPPORTED, reason=SKIP_NO_SYMLINK)
 def test_build_context_rejects_in_tree_symlink(tmp_path: Path) -> None:
     """Even an in-tree symlink is skipped rather than read through."""
     skill_dir = tmp_path / "skill"
@@ -1117,6 +1133,7 @@ def test_build_context_rejects_in_tree_symlink(tmp_path: Path) -> None:
     assert "alias.md" not in result["components"]
 
 
+@pytest.mark.skipif(not SYMLINKS_SUPPORTED, reason=SKIP_NO_SYMLINK)
 def test_build_context_rejects_file_swapped_to_symlink_before_read(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1146,6 +1163,7 @@ def test_build_context_rejects_file_swapped_to_symlink_before_read(
     assert event["reason_code"] == "not_regular_file"
 
 
+@pytest.mark.skipif(not SYMLINKS_SUPPORTED, reason=SKIP_NO_SYMLINK)
 def test_build_context_rejects_symlinked_manifest(tmp_path: Path) -> None:
     """Manifest parsing cannot bypass symlink rejection applied to the cache."""
     external = tmp_path.parent / "external_manifest.md"

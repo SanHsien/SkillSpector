@@ -52,6 +52,9 @@ def _run_cli(*arguments: str) -> subprocess.CompletedProcess[str]:
         check=False,
         capture_output=True,
         text=True,
+        # The CLI writes UTF-8; the default locale codec is cp950 on some
+        # Windows hosts and raises UnicodeDecodeError in the reader thread.
+        encoding="utf-8",
     )
 
 

@@ -28,6 +28,7 @@ import pytest
 from skillspector.input_handler import (
     ALLOWED_GIT_HOSTS,
     InputHandler,
+    _FileOpenError,
     _open_regular_file_from_windows_handle,
     _open_regular_file_no_follow,
 )
@@ -226,7 +227,17 @@ def test_resolve_file_open_failure_does_not_create_temp_dir(tmp_path: Path) -> N
     source.write_text("# Skill", encoding="utf-8")
     handler = InputHandler()
     try:
-        with patch("skillspector.input_handler.os.open", side_effect=OSError("denied")):
+        # Windows never reaches os.open here; _open_regular_file_no_follow falls
+        # through to the handle-based opener, which turns a failed CreateFileW
+        # into _FileOpenError itself. Deny both so the failure path is exercised
+        # on every platform.
+        with (
+            patch("skillspector.input_handler.os.open", side_effect=OSError("denied")),
+            patch(
+                "skillspector.input_handler._open_regular_file_from_windows_handle",
+                side_effect=_FileOpenError(source, OSError("denied")),
+            ),
+        ):
             with pytest.raises(ValueError, match="Could not safely open"):
                 handler.resolve(str(source))
         assert handler.temp_dir_for_cleanup() is None

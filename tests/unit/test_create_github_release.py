@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.platform_support import SHEBANG_CLI_STUBS_SUPPORTED, SKIP_NO_SHEBANG_CLI
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_RELEASE_SCRIPT = REPO_ROOT / "scripts" / "release" / "public" / "create_github_release.py"
 
@@ -78,6 +80,9 @@ def test_dry_run_derives_public_tag_from_project_version(tmp_path: Path) -> None
         check=False,
         capture_output=True,
         text=True,
+        # The CLI writes UTF-8; the default locale codec is cp950 on some
+        # Windows hosts and raises UnicodeDecodeError in the reader thread.
+        encoding="utf-8",
     )
 
     assert result.returncode == 0, result.stderr
@@ -86,6 +91,7 @@ def test_dry_run_derives_public_tag_from_project_version(tmp_path: Path) -> None
     assert "deadbeef" in result.stdout
 
 
+@pytest.mark.skipif(not SHEBANG_CLI_STUBS_SUPPORTED, reason=SKIP_NO_SHEBANG_CLI)
 def test_creates_github_release_with_supported_distribution_artifacts(tmp_path: Path) -> None:
     """The helper attaches the wheel and sdist to the GitHub release."""
     (tmp_path / "pyproject.toml").write_text(
@@ -155,6 +161,9 @@ def test_creates_github_release_with_supported_distribution_artifacts(tmp_path: 
         check=False,
         capture_output=True,
         text=True,
+        # The CLI writes UTF-8; the default locale codec is cp950 on some
+        # Windows hosts and raises UnicodeDecodeError in the reader thread.
+        encoding="utf-8",
     )
 
     assert result.returncode == 0, result.stderr
@@ -176,6 +185,7 @@ def test_creates_github_release_with_supported_distribution_artifacts(tmp_path: 
 
 
 @pytest.mark.parametrize("include_assets", [False, True], ids=["notes-only", "notes-and-assets"])
+@pytest.mark.skipif(not SHEBANG_CLI_STUBS_SUPPORTED, reason=SKIP_NO_SHEBANG_CLI)
 def test_reconciles_and_publishes_when_rerunning_an_existing_release(
     tmp_path: Path,
     include_assets: bool,
@@ -212,6 +222,9 @@ def test_reconciles_and_publishes_when_rerunning_an_existing_release(
         check=False,
         capture_output=True,
         text=True,
+        # The CLI writes UTF-8; the default locale codec is cp950 on some
+        # Windows hosts and raises UnicodeDecodeError in the reader thread.
+        encoding="utf-8",
     )
 
     assert result.returncode == 0, result.stderr
@@ -246,6 +259,7 @@ def test_reconciles_and_publishes_when_rerunning_an_existing_release(
     ] == expected_calls
 
 
+@pytest.mark.skipif(not SHEBANG_CLI_STUBS_SUPPORTED, reason=SKIP_NO_SHEBANG_CLI)
 def test_rejects_an_existing_version_tag_at_another_commit(tmp_path: Path) -> None:
     """A labeled PR cannot overwrite or release an already-used version tag."""
     (tmp_path / "pyproject.toml").write_text(
@@ -280,6 +294,9 @@ def test_rejects_an_existing_version_tag_at_another_commit(tmp_path: Path) -> No
         check=False,
         capture_output=True,
         text=True,
+        # The CLI writes UTF-8; the default locale codec is cp950 on some
+        # Windows hosts and raises UnicodeDecodeError in the reader thread.
+        encoding="utf-8",
     )
 
     assert result.returncode != 0
@@ -309,7 +326,12 @@ def test_rejects_a_release_when_its_versioned_notes_are_missing(tmp_path: Path) 
         check=False,
         capture_output=True,
         text=True,
+        # The CLI writes UTF-8; the default locale codec is cp950 on some
+        # Windows hosts and raises UnicodeDecodeError in the reader thread.
+        encoding="utf-8",
     )
 
     assert result.returncode != 0
-    assert "docs/release/skillspector-2.4.3.md" in result.stderr
+    # The script reports the path with the platform separator, so compare
+    # against a rendered Path rather than a hardcoded POSIX string.
+    assert str(Path("docs/release/skillspector-2.4.3.md")) in result.stderr

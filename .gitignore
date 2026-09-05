@@ -108,3 +108,12 @@ credentials.json
 
 # LangGraph API server
 .langgraph_api/
+
+# --- fork ---
+# Additional tool caches not already covered above (SanHsien fork tooling).
+# .venv/, .pytest_cache/, and htmlcov/ are already ignored earlier in this file.
+.ruff_cache/
+.mypy_cache/
+# Generated maintenance reports; regenerate, do not commit.
+upstream-review-report.md
+dependency-freshness-report.md

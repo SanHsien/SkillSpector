@@ -15,10 +15,45 @@
 
 """Pytest fixtures for skillspector tests (safe/malicious skill dirs)."""
 
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
+_ORIGINAL_WRITE_TEXT = Path.write_text
+
+
+def _write_text_lf(
+    self: Path,
+    data: str,
+    encoding: str | None = None,
+    errors: str | None = None,
+    newline: str | None = None,
+) -> int:
+    """``Path.write_text`` that defaults to LF instead of the platform separator."""
+    return _ORIGINAL_WRITE_TEXT(
+        self,
+        data,
+        encoding=encoding,
+        errors=errors,
+        newline="\n" if newline is None else newline,
+    )
+
+
+@pytest.fixture(autouse=True)
+def pin_fixture_newlines_to_lf(monkeypatch: pytest.MonkeyPatch):
+    """Make fixture writes produce the same bytes on Windows as they do in CI.
+
+    ``Path.write_text`` translates ``\\n`` to ``\\r\\n`` on Windows by default, so a
+    fixture that writes ``"print(1)\\n"`` puts different bytes on disk than the same
+    line does on Linux. Tests that assert on cached file content then fail locally
+    while passing in CI. Pinning LF removes the platform from the input, not from
+    the assertion.
+    """
+    if sys.platform == "win32":
+        monkeypatch.setattr(Path, "write_text", _write_text_lf)
+    yield
 
 
 @pytest.fixture(autouse=True)

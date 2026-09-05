@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 
 from scripts import compare_scan_accuracy
+from tests.platform_support import HAS_GETEUID, SKIP_NO_GETEUID
 
 ZERO_TOLERANCE_POLICY = {
     "max_candidate_false_positives": 0,
@@ -999,6 +1000,7 @@ def test_manifest_rejects_unknown_duplicate_and_unknown_classification_fields(
         _compare(tmp_path, manifest, corpus)
 
 
+@pytest.mark.skipif(not HAS_GETEUID, reason=SKIP_NO_GETEUID)
 def test_runtime_identity_hashes_fixed_environment_and_dependency_metadata(
     tmp_path: Path,
     monkeypatch,
@@ -1151,6 +1153,7 @@ def test_accuracy_counts_reject_failed_or_incomplete_reports(
         compare_scan_accuracy._rule_counts(report, frozenset())
 
 
+@pytest.mark.skipif(not HAS_GETEUID, reason=SKIP_NO_GETEUID)
 def test_accuracy_snapshots_execute_against_private_immutable_inputs(
     tmp_path: Path,
     monkeypatch,
@@ -1212,6 +1215,7 @@ def test_accuracy_snapshots_execute_against_private_immutable_inputs(
     assert not snapshot_parent.exists()
 
 
+@pytest.mark.skipif(not HAS_GETEUID, reason=SKIP_NO_GETEUID)
 def test_fresh_home_is_owned_empty_worktree_independent_and_cleaned(tmp_path: Path) -> None:
     worktree_git_file = tmp_path / ".git"
     worktree_git_file.write_text("gitdir: elsewhere\n", encoding="utf-8")

@@ -1,0 +1,9 @@
+{
+  "repo": "https://github.com/NVIDIA/SkillSpector.git",
+  "branch": "main",
+  "reviewed_through": "7805bb94843d91cb9937f57264ca52642164499b",
+  "reviewed_date": "2026-09-04",
+  "notes": "Fork is currently level with upstream at this commit (fork HEAD == upstream/main tip). Later commits, pull requests, and issues need review before the watermarks advance.",
+  "reviewed_pr_through": 483,
+  "reviewed_issue_through": 482
+}
