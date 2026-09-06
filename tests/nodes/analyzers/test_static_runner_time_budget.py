@@ -67,7 +67,22 @@ def test_non_positive_value_removes_the_ceiling(
 ) -> None:
     """Zero or negative means "no ceiling", not "expire immediately"."""
     budget = _reload_with(monkeypatch, value)
-    assert budget == float("inf")
+    assert budget == 86_400.0
+
+
+@pytest.mark.parametrize("value", ["0", "-1"])
+def test_unbounded_stays_finite(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    """math.inf here overflows: a remaining-time budget becomes an integer timeout.
+
+    Reproduced as OverflowError out of static_yara on 107 files when the unbounded
+    sentinel was float("inf"), reported as analyzer_runtime_error rather than as a
+    limit -- so the scan looked broken instead of slow.
+    """
+    import math
+
+    budget = _reload_with(monkeypatch, value)
+    assert math.isfinite(budget)
+    assert int(budget * 1000) > 0
 
 
 def test_non_numeric_value_falls_back_to_the_default(monkeypatch: pytest.MonkeyPatch) -> None:

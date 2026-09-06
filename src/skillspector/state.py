@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import operator
+import os
 from dataclasses import dataclass, field
 from time import monotonic
 from typing import Annotated, NotRequired
@@ -39,6 +40,24 @@ from skillspector.inspection_ledger import (
 from skillspector.models import Finding
 
 MAX_WORKFLOW_SECONDS = 60.0
+_UNBOUNDED_SECONDS = 86_400.0
+# Companion to SKILLSPECTOR_MAX_STATIC_SECONDS: that one bounds a single artifact,
+# this one bounds the whole graph invocation. A bundle with many components can
+# exhaust it even when no individual file is slow, and every remaining file is then
+# recorded as runtime_limit with zero findings -- a scan that reports clean because
+# it stopped looking. SKILLSPECTOR_MAX_WORKFLOW_SECONDS raises it; <= 0 removes the
+# ceiling (_UNBOUNDED_SECONDS, one day -- a large finite value rather than math.inf,
+# which overflows when a remaining-time budget is converted to an integer timeout).
+# The default is unchanged.
+if (_env_workflow_seconds := os.environ.get("SKILLSPECTOR_MAX_WORKFLOW_SECONDS")) is not None:
+    try:
+        _parsed_workflow_seconds = float(_env_workflow_seconds)
+    except ValueError:
+        pass
+    else:
+        MAX_WORKFLOW_SECONDS = (
+            _UNBOUNDED_SECONDS if _parsed_workflow_seconds <= 0 else _parsed_workflow_seconds
+        )
 MAX_WORKFLOW_BYTES = 64 * 1024 * 1024
 MAX_WORKFLOW_ARTIFACTS = 10_000
 MAX_WORKFLOW_LIMITATION_RECORDS = 256

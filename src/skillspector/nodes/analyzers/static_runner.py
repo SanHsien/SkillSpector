@@ -117,6 +117,7 @@ _CONTINUITY_MAX_CHAIN_RUNS = 24
 MAX_FINDINGS_PER_ARTIFACT = 10_000
 MAX_FINDINGS_PER_ANALYZER = 10_000
 MAX_STATIC_ANALYSIS_SECONDS_PER_ARTIFACT = 30.0
+_UNBOUNDED_SECONDS = 86_400.0
 # The default bounds a pathological artifact; it is not a statement about how
 # long a legitimate one may take. A large reference file on slow storage can
 # exceed it and degrade the analyzer, which reports 0 findings for that file
@@ -135,7 +136,7 @@ if (_env_static_seconds := os.environ.get("SKILLSPECTOR_MAX_STATIC_SECONDS")) is
         )
     else:
         MAX_STATIC_ANALYSIS_SECONDS_PER_ARTIFACT = (
-            float("inf") if _parsed_static_seconds <= 0 else _parsed_static_seconds
+            _UNBOUNDED_SECONDS if _parsed_static_seconds <= 0 else _parsed_static_seconds
         )
 
 _LICENSE_FILE_TYPES = frozenset({"markdown", "text", "other"})
