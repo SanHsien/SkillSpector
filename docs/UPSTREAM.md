@@ -13,18 +13,16 @@
 
 ```
 reviewed_through:       7805bb94843d91cb9937f57264ca52642164499b
-reviewed_pr_through:    462
-reviewed_issue_through: 0
+reviewed_pr_through:    486
+reviewed_issue_through: 485
 ```
 
 - `reviewed_through` 是 fork HEAD 對齊 `upstream/main` tip 的 commit；此刻整個工作樹與上游
   逐位元組相同。
-- `reviewed_pr_through` = 462 只代表「merge 進 `upstream/main` 的 PR 都已經字面上在這個
-  commit 裡」，**不代表**有人審視過還沒 merge 的開放 PR——本檔的 Group C 就是在補這一塊。
-  截至 2026-09-04，#470、#447、#442、#430、#410、#409、#403 這七個 PR 已開啟但未合併
-  （加上本檔另外收錄的 #383，共八個）。
-- `reviewed_issue_through` = 0：上游的 GitHub Issues 目前完全沒有人審視過，是待補的空白，
-  不是「沒有 issue 需要處理」的結論。
+- `reviewed_pr_through` = 486：#463–#486 的 15 筆新增 PR 已逐筆讀 diff；除本 fork 已採用的
+  #486 外都仍 open，維持等待。更早的八筆 open PR 判定仍在 Group C。
+- `reviewed_issue_through` = 485：190 筆 issue 已按 upstream closed state 與 53 筆仍 open 的
+  責任面完成首輪分類；這是「已判斷」，不是宣稱所有 open issue 都已修正。
 
 ## Group A／B：內容已在 `main` 或已隨上游 PR 定案的分支
 
@@ -229,7 +227,7 @@ PR 的 head，內容是否在樹裡取決於該 PR 是否合併。
    合併新的 revert；在那之前這個分支不需要保留在 fork 裡等待復審，可以直接刪除
    （判定已寫入本檔，符合「判定先於刪除」的規則）。
 
-## 下一步
+## 2026-09-04 當時的下一步
 
 依優先序：
 
@@ -249,3 +247,11 @@ PR 的 head，內容是否在樹裡取決於該 PR 是否合併。
    （本次任務範圍不含刪除分支）。
 6. **`reviewed_issue_through` 仍是 0**——上游 GitHub Issues 從未被審視過，是水位機制裡唯一
    完全空白的一軸，下一次上游同步時應該一併排入。
+
+## 2026-09-06：目前下一步
+
+1. 優先追 #470、#473、#480、#483、#484 這五筆純靜態／平台安全修正是否合併。
+2. #463、#465、#467–#469、#474 對應既有 open issue，合併後隨 upstream main 同步。
+3. #466 若合併，只吸收不衝突的貢獻者指引；本 fork 的 `CLAUDE.md` 仍維持指向 `AGENTS.md` 的薄指標。
+4. issue 53 筆 open 清冊與逐筆 PR 判定以 [`DECISIONS.md`](DECISIONS.md) 為準；新編號從
+   PR #487、issue #486 起看，不重掃本輪 190 筆。

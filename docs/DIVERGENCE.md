@@ -6,10 +6,9 @@
 
 ## 維護契約
 
-**改動任何一個上游持有的檔案，就必須在這裡加一列。** 目前這件事靠人工檢查（`git diff
-upstream/main -- <path>`），沒有機器強制；`commerce-agents` 範本線上的
-`tools/check_divergence.py` 尚未移植到本 repo，見 [`FORK.md`](../FORK.md) 的「尚未建立的維護
-自動化」一節。移植後本段落要更新為機器強制的說明。
+**改動任何一個上游持有的檔案，就必須在這裡加一列。** `tools/check_divergence.py` 以
+`tools/upstream_baseline.json` 的完整 SHA 為基準，比對 working tree 與本節唯一表格；新增但
+上游不存在的 fork 檔案不算分岔。這一步已納入 `tools/dev_check.ps1`，缺列或過期列都會擋下 gate。
 
 最後一欄「跟進上游時怎麼處理」是這張表的重點：寫成**可執行的判準**，讓日後同步上游時不必
 重新評估一次判斷，照著欄位裡的規則做決定即可。
@@ -44,10 +43,11 @@ upstream/main -- <path>`），沒有機器強制；`commerce-agents` 範本線�
 [PR #486](https://github.com/NVIDIA/SkillSpector/pull/486)（branch `fix/windows-file-url-editable-dependency`，帶 DCO sign-off）。**上游 merge 後就從本表刪掉這一列**，改成同步上游即可 |
 | `.gitignore` | 上游版本 | 檔尾追加 fork 區塊（`.ruff_cache/`、`.mypy_cache/`、兩份生成報告） | 本 fork 的維護工具會在工作區產生報告檔，不加就會被 `git add -A` 收進去 | **保留**。上游變更照常合併，追加區塊在檔尾，衝突機率低 |
 | `README.md` | 英文說明文件 | `git mv` 成 `README.en.md`（內容原封不動，只在頂部加一行語言列），另新寫繁中 `README.md` | README 是上游最常動的檔。就地翻譯會讓每次同步整檔衝突；改名保留鏡像，同步時 `README.en.md` 可以直接吃上游的 diff | **保留**。同步上游時：`git checkout upstream/main -- README.md && git mv -f README.md README.en.md`，重加語言列，再人工判斷繁中 `README.md` 要不要跟著更新 |
+| `tests/nodes/test_security_end_to_end.py` | 大型安全 fixture 使用產品的每檔 30 秒、YARA 載入 5 秒與 SC8 traversal 5 秒上限 | 只在兩個 oversized acceptance tests 將每檔額度調為 600 秒、YARA／SC8 調為 60 秒 | Windows 冷啟動實測會分別命中 static 與 `static_patterns_supply_chain_bytecode` runtime limit；產品預設與一般測試均不變 | **保留到上游讓測試 budget 可注入或縮短 fixture 成本**；不得因此放寬產品預設 |
 
 ## 已知但**不**登記為分岔的上游問題
 
 | 現象 | 判斷 |
 |---|---|
-| `tests/nodes/test_security_end_to_end.py::test_nine_case_contract_across_public_surfaces` 單獨執行時紅（`analysis_completeness.is_complete` 為 `False`），整包跑時綠 | 上游既有的測試隔離問題，**與本 fork 無關**：`git stash` 掉本 fork 全部測試改動後單獨執行同樣紅。推測是整包執行時前面的測試已暖好 YARA 規則編譯等快取，單獨跑時首次成本吃掉 `MAX_WORKFLOW_SECONDS = 60` 預算。canonical gate（整包 + `tools/dev_check.ps1`）是綠的，故不動它 |
+| `tests/nodes/test_security_end_to_end.py` 的大型案例在冷啟動時可能耗盡 SC8 5 秒、每檔 30 秒或整體 60 秒上限 | fork 只對兩個 oversized acceptance tests 注入寬裕額度；產品限制不變。上游若提供正式 test-budget 注入點就改用並刪除本分岔 |
 | `tools/check_dependency_freshness.py` 對 `pyproject.toml` 的 Python 依賴回報 25 列 `REVIEW UPDATE` | `pyproject.toml` 是上游持有檔，宣告的是相容性下限（`>=`）不是釘選。本 fork 不動它，這些列對本 fork 是**資訊性**的；真正可行動的是 fork 持有的 workflow 裡釘選的 GitHub Action。詳見 [`DECISIONS.md`](DECISIONS.md) |

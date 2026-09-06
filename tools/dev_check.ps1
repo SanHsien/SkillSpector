@@ -33,9 +33,19 @@ function Invoke-Step {
 # `rm -rf`, `find`), which does not run on native Windows (non-WSL2). This script
 # bypasses the Makefile entirely and calls `uv` / `ruff` / `pytest` directly instead
 # of wrapping `make` targets.
-Invoke-Step -Label "Ruff check" -Exe "uv" -Arguments @("run", "ruff", "check", "src/", "tests/")
-Invoke-Step -Label "Ruff format --check" -Exe "uv" -Arguments @("run", "ruff", "format", "--check", "src/", "tests/")
+Invoke-Step -Label "Ruff check" -Exe "uv" -Arguments @(
+    "run", "ruff", "check", "src/", "tests/", "tools/check_divergence.py", "tools/check_pin_bounds.py"
+)
+Invoke-Step -Label "Ruff format --check" -Exe "uv" -Arguments @(
+    "run", "ruff", "format", "--check", "src/", "tests/", "tools/check_divergence.py", "tools/check_pin_bounds.py"
+)
 Invoke-Step -Label "Version smoke test" -Exe "uv" -Arguments @("run", "skillspector", "--version")
+Invoke-Step -Label "Divergence registry" -Exe "uv" -Arguments @(
+    "run", "python", "tools/check_divergence.py"
+)
+Invoke-Step -Label "Locked dependency bounds" -Exe "uv" -Arguments @(
+    "run", "python", "tools/check_pin_bounds.py"
+)
 
 # Non-strict on purpose: this reports declared-dependency drift for a human to
 # read (dependency-freshness-report.md), it does not gate the commit on PyPI /

@@ -48,7 +48,7 @@ Apache License 2.0 與完整 Git 歷史。
 
 ## 已建立的維護自動化
 
-2026-09-05 補齊了上游同步與依賴新鮮度兩條自動化，取代原本的人工流程：
+2026-09-05～06 補齊上游同步、依賴新鮮度、分岔、pin bounds 與 CodeQL：
 
 - **上游同步水位**：`tools/upstream_baseline.json` 記錄 commit（`reviewed_through`，完整
   40 碼 SHA）、PR（`reviewed_pr_through`）、issue（`reviewed_issue_through`）三軸水位；
@@ -68,10 +68,11 @@ Apache License 2.0 與完整 Git 歷史。
 - **Dependabot**：`.github/dependabot.yml` 涵蓋 `uv`（`pyproject.toml`/`uv.lock`）、
   `github-actions`、`npm`（`package.json`，pi extension 的 peer dependencies）、`docker`
   （`Dockerfile` 的 digest-pin base image）四個 ecosystem，每週檢查。
-
-尚未移植、留給後續 session 視需要另外建立：`tools/check_divergence.py`
-（`docs/DIVERGENCE.md` 已有 10 筆登記，但一致性仍靠人工 `git diff upstream/main -- <path>`
-檢查，沒有 CI 強制）、`tools/check_pin_bounds.py`、`.github/workflows/codeql.yml`。
+- **分岔與 pin bounds**：`tools/check_divergence.py` 強制 11 筆上游檔案分岔與
+  `docs/DIVERGENCE.md` 一致；`tools/check_pin_bounds.py` 驗證 `uv.lock` 的直接依賴版本仍落在
+  `pyproject.toml` 宣告範圍。兩者都進 `tools/dev_check.ps1`。
+- **CodeQL**：`.github/workflows/codeql.yml` 對 Python 與 JavaScript/TypeScript 跑
+  `security-extended`，push／PR／每週排程都啟用，權限限於讀內容與寫入 security events。
 
 ## 分支與 remote
 

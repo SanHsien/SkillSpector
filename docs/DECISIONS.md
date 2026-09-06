@@ -105,7 +105,50 @@ LLM 兩階段分析、MCP server、Claude Code skill），符合維護者用 Cla
 [`SECURITY.md`](../SECURITY.md) 的流程走，必要時在 `DIVERGENCE.md` 登記一筆例外並附產物比對
 證據；不要拿本條當作不處理 CVE 的理由。
 
-## 尚待記錄
+## 2026-09-06：補齊 divergence、pin-bounds 與 CodeQL
 
-- `tools/check_divergence.py`、`tools/check_pin_bounds.py` 移植後，把 `DIVERGENCE.md`
-  的「維護契約」段落從人工檢查改寫為機器強制。
+**決定**：新增兩支 stdlib／既有依賴即可執行的維護 gate，並納入 `tools/dev_check.ps1`：
+`check_divergence.py` 對 baseline SHA 的上游持有檔案做集合相等檢查；`check_pin_bounds.py` 用
+`packaging.Requirement` 驗證 `uv.lock` 中 28 個直接依賴版本符合 `pyproject.toml`。另新增 Python
+與 JavaScript/TypeScript 的 CodeQL `security-extended` workflow。
+
+**理由**：人工 divergence 表會漂移；依賴下限與實際 lock 版本是兩種不同承諾；Scorecard 只上傳
+自己的 SARIF，不能取代 CodeQL。三者各補一個既有 gate 沒有覆蓋的面向。
+
+**限制**：divergence 只掃 baseline 已存在的上游檔案，fork 新增檔不登記；pin-bounds 只驗直接
+依賴，不替代 `uv lock --check` 或 CVE 掃描；CodeQL 不啟用自動修復或寫入 repo。
+
+## 2026-09-06：PR #463–#486 與 issue #2–#485 首輪水位
+
+15 筆新 PR 全部讀過檔案範圍；除 #486 已在本 fork 採用外，其餘仍 open，維持等待上游合併：
+
+| PR | 判定 | 範圍／觸發點 |
+|---|---|---|
+| #463 | 等上游 | CLI provider registry override；合併後同步，對應 issue #459 |
+| #465 | 等上游 | bare shell variable parse bounds；對應 #464 |
+| #466 | 等上游後重解 | 新增上游 `CLAUDE.md`，會碰本 fork 的薄指標政策 |
+| #467 | 等上游 | recursive JSON stdout；對應 #449 |
+| #468 | 等上游 | configurable workflow deadline；對應 #460；本 fork 僅在 oversized tests 注入測試額度 |
+| #469 | 等上游 | `--fail-on-findings`；對應 #448 |
+| #470 | 等上游 | letter-spaced P3/P4 靜態繞過，維持安全高優先 |
+| #471 | 等上游 | SKILL.md BOM 與多處 analyzer 邊界 |
+| #473 | 等上游 | 非 Markdown bidi control（CVE-2021-42574） |
+| #474 | 等上游 | RP3 manifest version projection；對應 #472 |
+| #476 | 等上游 | README 的 AS1–AS3 文件 |
+| #480 | 等上游 | JS module／PHP suffix executable classification |
+| #483 | 等上游 | E2 grep flags／quoting；對應 #482 |
+| #484 | 等上游 | Windows 8.3 short path 展開；對應 #481 |
+| #486 | 已採用 | `file://` editable dependency 改用 `url2pathname`；本 fork 既有分岔，對應 #485 |
+
+issue 水位不是以「看過標題」草率歸零：截至 #485 共 190 筆，137 筆已由 upstream 關閉
+（134 `COMPLETED`；#48、#109、#199 為 `NOT_PLANNED`），其餘 53 筆仍 open，依責任面完整列號：
+
+- provider／LLM：#8、#10、#69、#90、#129、#296、#303、#304、#334、#433、#435、#456、
+  #459、#460。
+- static／security：#171、#181、#268、#297、#363、#367、#389、#413、#419、#440、#441、
+  #444、#445、#446、#458、#464、#472、#475、#477、#478、#479、#482。
+- CLI／report／platform／產品方向：#33、#37、#72、#121、#130、#212、#226、#271、#277、
+  #314、#326、#335、#448、#449、#450、#481、#485。
+
+這 53 筆不是 fork 待辦清單：核心產品以上游為準；與 open PR 對應者等合併，其餘在上游狀態或
+head 改變、或本 fork 實際重現時再評估。水位推進只表示本輪已分類，不表示問題已解決。
