@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import time
 import unicodedata
@@ -116,6 +117,26 @@ _CONTINUITY_MAX_CHAIN_RUNS = 24
 MAX_FINDINGS_PER_ARTIFACT = 10_000
 MAX_FINDINGS_PER_ANALYZER = 10_000
 MAX_STATIC_ANALYSIS_SECONDS_PER_ARTIFACT = 30.0
+# The default bounds a pathological artifact; it is not a statement about how
+# long a legitimate one may take. A large reference file on slow storage can
+# exceed it and degrade the analyzer, which reports 0 findings for that file
+# while the scan exits 2 -- a silent hole exactly where a scan gate needs
+# coverage. SKILLSPECTOR_MAX_STATIC_SECONDS raises it; 0 or a negative value
+# removes the ceiling entirely, for callers that would rather wait than accept
+# an incomplete result.
+if (_env_static_seconds := os.environ.get("SKILLSPECTOR_MAX_STATIC_SECONDS")) is not None:
+    try:
+        _parsed_static_seconds = float(_env_static_seconds)
+    except ValueError:
+        logger.warning(
+            "SKILLSPECTOR_MAX_STATIC_SECONDS=%r is not numeric, using default %.1fs",
+            _env_static_seconds,
+            MAX_STATIC_ANALYSIS_SECONDS_PER_ARTIFACT,
+        )
+    else:
+        MAX_STATIC_ANALYSIS_SECONDS_PER_ARTIFACT = (
+            float("inf") if _parsed_static_seconds <= 0 else _parsed_static_seconds
+        )
 
 _LICENSE_FILE_TYPES = frozenset({"markdown", "text", "other"})
 _LICENSE_BASENAME = re.compile(r"^(?:license|licenses|copying|notice|notices)(?:[._-].*)?$")

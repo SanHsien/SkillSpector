@@ -63,6 +63,14 @@ YARA 簽章 + OSV.dev 即時 CVE 查詢），Stage 2 可選的 LLM 語意分析�
   Ruff check／format → CLI version smoke → 分岔登記與鎖定依賴邊界檢查 →
   dependency freshness report；不帶 `-Quick` 的完整模式再加
   `uv run pytest -m "not integration and not provider" tests/ -q`。
+- **⚠️ 跑測試前先確認用的是本 repo 的 `.venv`**：本機環境設了全域
+  `UV_PROJECT_ENVIRONMENT=C:\tmp\agentdeck`，會讓**每一個** uv 專案共用同一個 venv。
+  症狀是本 repo 的 `.venv` 不存在、套件集合被別的專案洗掉（實測 `hatchling` 不見導致
+  `test_wheel_contents.py` 收集失敗），而且另一個行程佔用時 `uv sync --reinstall` 會丟
+  `os error 32`。這會**假造出 23 筆與程式碼無關的紅燈**。每個指令前面加
+  `UV_PROJECT_ENVIRONMENT=.venv`（或先 `$env:UV_PROJECT_ENVIRONMENT=".venv"`），
+  例：`UV_PROJECT_ENVIRONMENT=.venv uv run --python 3.13 pytest -m "not integration and not provider" tests/ -q`。
+  下方的通過數字都是在本 repo 自己的 `.venv` 底下量到的。
 - **Windows 全綠是完成判準**：本機 Windows 執行
   `uv run pytest -m "not integration and not provider" tests/` 目前為
   **3959 passed / 0 failed / 39 skipped / 38 deselected / 4 xfailed**。原本的 23 筆紅燈已全部處理，逐筆判準登記於
