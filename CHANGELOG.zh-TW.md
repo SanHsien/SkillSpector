@@ -37,7 +37,9 @@
 - `scripts/compare_scan_accuracy.py`：`file://` URL 轉本機路徑改用
   `urllib.request.url2pathname`，取代 `Path(urllib.parse.unquote(...))`。後者在 Windows 上
   把 `/C:/Users/...` 的前導斜線當成根，算出 `C:\C:\Users\...`。這是上游的真實可攜性 bug，
-  也是本 fork 唯一動到產品端的一筆分岔。
+  也是本 fork 唯一動到產品端的一筆分岔。**已回貢上游**：
+  [issue #485](https://github.com/NVIDIA/SkillSpector/issues/485) →
+  [PR #486](https://github.com/NVIDIA/SkillSpector/pull/486)。
 
 ### Notes
 
