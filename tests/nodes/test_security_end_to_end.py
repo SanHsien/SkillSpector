@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -53,6 +54,8 @@ def _rd04_oversized_payload(marker: str) -> str:
 
 def _allow_slow_static_fixture(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep oversized fixture scans deterministic on slower Windows runners."""
+    if os.name != "nt":
+        return
     seconds = 600.0
     budget_type = state_module.WorkflowResourceBudget
 
