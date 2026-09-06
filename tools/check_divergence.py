@@ -76,7 +76,10 @@ def collect(repo: Path, baseline_path: Path) -> tuple[str, set[str]]:
     git(repo, "cat-file", "-e", f"{base}^{{commit}}")
     owned = set(git(repo, "ls-tree", "-r", "--name-only", base).splitlines())
     pairs: list[tuple[str, str]] = []
-    for line in git(repo, "diff", "--name-status", base, "--").splitlines():
+    # Disable rename detection so a renamed upstream-owned file is reported as a
+    # deletion of its original path plus a fork-owned addition.  Otherwise the
+    # R status could bypass the M/D/A registry mapping below.
+    for line in git(repo, "diff", "--no-renames", "--name-status", base, "--").splitlines():
         if line.strip():
             parts = line.split("\t")
             pairs.append((parts[0][0], parts[-1]))

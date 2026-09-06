@@ -47,6 +47,26 @@ def test_divergent_paths_ignore_fork_additions_and_map_readme_mirror() -> None:
     }
 
 
+def test_collect_disables_rename_detection(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    base = "a" * 40
+    baseline = tmp_path / "upstream_baseline.json"
+    baseline.write_text(f'{{"reviewed_through": "{base}"}}', encoding="utf-8")
+    calls: list[tuple[str, ...]] = []
+
+    def fake_git(_repo: Path, *args: str) -> str:
+        calls.append(args)
+        if args[0] == "ls-tree":
+            return "src/old_name.py\n"
+        if args[0] == "diff":
+            return "D\tsrc/old_name.py\nA\tsrc/new_name.py\n"
+        return ""
+
+    monkeypatch.setattr(divergence, "git", fake_git)
+
+    assert divergence.collect(tmp_path, baseline) == (base, {"src/old_name.py"})
+    assert ("diff", "--no-renames", "--name-status", base, "--") in calls
+
+
 def write_dependency_fixture(root: Path, *, requirement: str, locked: str | None) -> None:
     (root / "pyproject.toml").write_text(
         f'[project]\nname = "demo"\nversion = "1.0"\ndependencies = ["{requirement}"]\n',

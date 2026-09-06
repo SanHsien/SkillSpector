@@ -8,7 +8,8 @@
 
 **改動任何一個上游持有的檔案，就必須在這裡加一列。** `tools/check_divergence.py` 以
 `tools/upstream_baseline.json` 的完整 SHA 為基準，比對 working tree 與本節唯一表格；新增但
-上游不存在的 fork 檔案不算分岔。這一步已納入 `tools/dev_check.ps1`，缺列或過期列都會擋下 gate。
+上游不存在的 fork 檔案不算分岔。比對明確停用 rename detection，所以上游檔案改名仍會以原路徑
+刪除列入分岔。這一步已納入 `tools/dev_check.ps1`，缺列或過期列都會擋下 gate。
 
 最後一欄「跟進上游時怎麼處理」是這張表的重點：寫成**可執行的判準**，讓日後同步上游時不必
 重新評估一次判斷，照著欄位裡的規則做決定即可。
@@ -18,7 +19,7 @@
 | 時間 | 指令 | 結果 |
 |---|---|---|
 | fork 當下（未改任何檔） | `uv run pytest -m "not integration and not provider" tests/` | 3943 passed / **23 failed** / 26 skipped |
-| 本表所列分岔套用後 | 同上 | **3953 passed / 0 failed / 39 skipped** |
+| 本表所列分岔套用後 | 同上 | **3959 passed / 0 failed / 39 skipped / 38 deselected / 4 xfailed** |
 
 23 筆紅燈全部是**測試對 POSIX 的假設**，不是產品在 Windows 上的行為錯誤。處理原則分兩類：
 

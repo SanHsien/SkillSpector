@@ -60,12 +60,12 @@ YARA 簽章 + OSV.dev 即時 CVE 查詢），Stage 2 可選的 LLM 語意分析�
   [`tools/dev_check.ps1`](tools/dev_check.ps1)，繞過 `Makefile` 直接呼叫
   `uv`／`ruff`／`pytest`。
 - **Windows 本機與 CI 的 canonical gate**：`tools/dev_check.ps1 -Quick` 跑
-  `ruff check src/ tests/` → `ruff format --check src/ tests/` →
-  `uv run skillspector --version`；不帶 `-Quick` 的完整模式再加
+  Ruff check／format → CLI version smoke → 分岔登記與鎖定依賴邊界檢查 →
+  dependency freshness report；不帶 `-Quick` 的完整模式再加
   `uv run pytest -m "not integration and not provider" tests/ -q`。
 - **Windows 全綠是完成判準**：本機 Windows 執行
   `uv run pytest -m "not integration and not provider" tests/` 目前為
-  **3953 passed / 0 failed / 39 skipped**。原本的 23 筆紅燈已全部處理，逐筆判準登記於
+  **3959 passed / 0 failed / 39 skipped / 38 deselected / 4 xfailed**。原本的 23 筆紅燈已全部處理，逐筆判準登記於
   [`docs/DIVERGENCE.md`](docs/DIVERGENCE.md)。**不要接受任何新的紅燈**：出現紅燈就是回歸，
   不是「已知的 Windows 落差」。跳過的 39 筆全部由 `tests/platform_support.py` 的能力探測
   決定（symlink／FIFO／`os.geteuid`／PATH 上的 shebang 腳本），不是 `sys.platform` 硬判。
