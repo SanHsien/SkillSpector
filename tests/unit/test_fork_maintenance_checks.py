@@ -196,3 +196,35 @@ def test_the_report_says_which_rows_gate() -> None:
     assert "informational" in report
     assert "fork-owned rows gate" in report
     assert "`ci.yml`" in report
+
+
+def test_a_token_is_sent_when_the_environment_has_one(monkeypatch) -> None:
+    """Anonymous api.github.com is 60/hour and hosted runners share it."""
+    seen: dict[str, str] = {}
+
+    class _Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b'{"tag_name": "v7.0.1"}'
+
+    def fake_urlopen(request, timeout=None):  # noqa: ARG001
+        seen.update(request.headers)
+        return _Response()
+
+    monkeypatch.setattr(freshness.urllib.request, "urlopen", fake_urlopen)
+
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    assert freshness.fetch_github_release("actions/checkout") == "7.0.1"
+    assert not any(key.lower() == "authorization" for key in seen)
+
+    seen.clear()
+    monkeypatch.setenv("GITHUB_TOKEN", "secret-token")
+    freshness.fetch_github_release("actions/checkout")
+    authorization = next(value for key, value in seen.items() if key.lower() == "authorization")
+    assert authorization == "Bearer secret-token"

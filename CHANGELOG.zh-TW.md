@@ -8,6 +8,13 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **依賴新鮮度的 Actions 查詢改帶 token。** 匿名 `api.github.com` 每小時 60 次、hosted runner 共用；
+  超額後每一列 Action 的 `latest` 都變 `unknown`，整個 Actions 半邊靜默失聲（而那正是本 repo 現在唯一
+  會擋 run 的一半）。`_github_json` 在有 `GITHUB_TOKEN`／`GH_TOKEN` 時送 `Authorization: Bearer`，
+  workflow 檢查步驟補上 `GH_TOKEN: ${{ github.token }}`。缺陷由 `SanHsien/commerce-agents` 那條線先發現。
+
 ### Changed
 
 - **依賴新鮮度只對 fork 持有的宣告紅燈。** `Dependency freshness` workflow 自 2026-09-05（`b02d8ae`）
@@ -21,7 +28,6 @@
   `git ls-tree` 交叉核對，上游新增 workflow 時不會靜默失準。**這條不適用於安全性通報**，那走
   [`SECURITY.md`](SECURITY.md)。
 
-### Fixed
 
 - **依賴新鮮度漏看了每一個 CodeQL pin。** `_USES_RE` 只匹配 `owner/repo@`，而
   `github/codeql-action/init`／`/analyze` 是三段路徑，所以 `codeql.yml` 的兩個 pin 從來沒進過報告。
