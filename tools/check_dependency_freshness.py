@@ -389,10 +389,32 @@ def render_markdown(
         lines.extend(["## Check failed", "", f"```text\n{error}\n```", ""])
         return "\n".join(lines)
 
-    lines.extend(["## Python dependencies (pyproject.toml, via PyPI)", ""])
+    lines.extend(
+        [
+            "## Python dependencies (pyproject.toml, via PyPI) -- informational",
+            "",
+            "`pyproject.toml` is upstream-owned and declares compatibility floors, so a",
+            "floor below the current release is how that declaration always looks, not",
+            "work this fork can take. These rows do **not** fail the run; see the",
+            "2026-09-05 decision in `docs/DECISIONS.md`. Security advisories are outside",
+            "this rule and follow `SECURITY.md`.",
+            "",
+        ]
+    )
     lines.extend(_render_table(rows_python))
     lines.append("")
-    lines.extend(["## GitHub Actions (pinned in .github/workflows/)", ""])
+    lines.extend(
+        [
+            "## GitHub Actions (pinned in .github/workflows/) -- fork-owned rows gate",
+            "",
+            "A row gates the run only when every workflow declaring it is fork-owned.",
+            "Pins that appear in an upstream-owned workflow ("
+            + ", ".join(f"`{name}`" for name in sorted(UPSTREAM_WORKFLOWS))
+            + ") are upstream's to move and are informational here, for the same",
+            "reason the pyproject floors above are.",
+            "",
+        ]
+    )
     lines.extend(_render_table(rows_actions))
     lines.extend(
         [
@@ -421,6 +443,46 @@ def render_markdown(
     return "\n".join(lines)
 
 
+# Workflows that exist in the upstream baseline. Their Action pins are upstream's
+# to move, exactly like pyproject.toml's floors -- repinning them here would put
+# the fork's name on someone else's compatibility choice and be overwritten at the
+# next sync. `test_fork_owned_workflows_matches_git` cross-checks this list against
+# `git ls-tree` on the baseline commit, so it cannot rot quietly when upstream adds
+# a workflow.
+UPSTREAM_WORKFLOWS = frozenset({"ci.yml", "release.yml", "scorecard.yml", "update-pr-branches.yml"})
+
+
+def _fork_owned(row: dict[str, object]) -> bool:
+    """True when every workflow declaring this pin is fork-owned."""
+    sources = {source.strip() for source in str(row.get("source", "")).split(",")}
+    return bool(sources) and not (sources & UPSTREAM_WORKFLOWS)
+
+
+def gating_rows(
+    rows_python: list[dict[str, object]],
+    rows_actions: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    """The rows a red run is allowed to be about: fork-owned pinned Actions.
+
+    `pyproject.toml` is upstream-owned and declares compatibility *floors*
+    (`typer>=0.23.0`), so a floor sitting below the current PyPI release is what
+    that style of declaration always looks like -- not staleness this fork can
+    act on. Raising it would make a compatibility promise on upstream's behalf
+    and be overwritten at the next sync; what actually decides installed
+    versions is `uv.lock`, which this check deliberately does not read. Gating
+    on those 25 rows made the monthly run permanently red with no exit, which
+    trains everyone to ignore it -- including the rows that *are* actionable.
+
+    The same reasoning excludes Action pins that only appear in upstream-owned
+    workflows (`ci.yml`, `release.yml`, ...): those are upstream's to move.
+    What is left is what this fork actually owns and can repin, so that is what
+    gates. Every row still appears in the report. Recorded as the 2026-09-05
+    decision in `docs/DECISIONS.md`; security advisories are out of scope for
+    this rule and follow `SECURITY.md`.
+    """
+    return [row for row in rows_actions if _fork_owned(row)]
+
+
 def write_github_output(
     rows_python: list[dict[str, object]],
     rows_actions: list[dict[str, object]],
@@ -429,7 +491,7 @@ def write_github_output(
     output_path = os.environ.get("GITHUB_OUTPUT")
     if not output_path:
         return
-    rows = rows_python + rows_actions
+    rows = gating_rows(rows_python, rows_actions)
     outdated = any(needs_review(row) for row in rows)
     check_failed = not rows or any(bool(row["check_failed"]) for row in rows)
     with open(output_path, "a", encoding="utf-8") as output:
@@ -474,7 +536,8 @@ def main() -> int:
     if error:
         return 2
     if args.strict and any(
-        needs_review(row) or bool(row["check_failed"]) for row in rows_python + rows_actions
+        needs_review(row) or bool(row["check_failed"])
+        for row in gating_rows(rows_python, rows_actions)
     ):
         return 1
     return 0

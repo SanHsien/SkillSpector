@@ -105,6 +105,22 @@ LLM 兩階段分析、MCP server、Claude Code skill），符合維護者用 Cla
 [`SECURITY.md`](../SECURITY.md) 的流程走，必要時在 `DIVERGENCE.md` 登記一筆例外並附產物比對
 證據；不要拿本條當作不處理 CVE 的理由。
 
+## 2026-09-09：把「資訊性」寫進 gate，而不是只寫在文件裡
+
+**決定**：`dependency-freshness` workflow 只對 **fork 持有的宣告** 失敗。實作是
+`check_dependency_freshness.py` 的 `gating_rows()`：`pyproject.toml` 的所有列、以及任何出現在
+上游持有 workflow（`ci.yml`、`release.yml`、`scorecard.yml`、`update-pr-branches.yml`）裡的
+Action pin，一律只顯示不擋。
+
+**理由**：上一條（2026-09-05）已經判定那 25 列是資訊性的，但**判定只寫在文件裡，gate 沒有跟著改**，
+於是 workflow 從 `b02d8ae` 起每次都紅。一個永遠紅又沒有出口的檢查，實際效果是訓練所有人忽略它——
+包含那幾列真正可行動的。上游 workflow 裡的 pin 與 `pyproject.toml` 的下限是同一種東西：不是本 fork
+的承諾，改了下次同步也會被蓋回去。
+
+**限制**：不適用於安全性通報（照 [`../SECURITY.md`](../SECURITY.md)）。`UPSTREAM_WORKFLOWS` 是常數，
+靠 `test_fork_owned_workflows_matches_git` 對 baseline commit 的 `git ls-tree` 交叉核對防止漂移；
+該測試在拿不到 baseline commit 的 checkout 會 skip，不會假綠。
+
 ## 2026-09-06：補齊 divergence、pin-bounds 與 CodeQL
 
 **決定**：新增兩支 stdlib／既有依賴即可執行的維護 gate，並納入 `tools/dev_check.ps1`：

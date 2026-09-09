@@ -5,6 +5,8 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -123,3 +125,74 @@ def test_an_uncomparable_latest_is_a_failed_check_not_an_ok() -> None:
     rows = freshness.collect_status(packages, lambda _name: "codeql-bundle-v2.26.4", deferrals={})
 
     assert rows[0]["check_failed"] is True
+
+
+def test_only_the_pinned_actions_gate_the_run() -> None:
+    """25 upstream pyproject floors made the monthly run permanently red."""
+    aged_floor = {
+        "name": "typer",
+        "minimum": "0.23.0",
+        "requirement": "typer>=0.23.0",
+        "source": "pyproject.toml",
+        "hold": "",
+        "kind": "pypi",
+        "latest": "0.24.0",
+        "outdated": True,
+        "check_failed": False,
+        "deferred_reason": "",
+    }
+    aged_action = {
+        **aged_floor,
+        "name": "actions/checkout",
+        "kind": "github-action",
+        "source": "codeql.yml",
+    }
+
+    assert freshness.gating_rows([aged_floor], []) == []
+    assert freshness.gating_rows([aged_floor], [aged_action]) == [aged_action]
+
+
+def test_pins_in_upstream_owned_workflows_do_not_gate() -> None:
+    """`ci.yml` is upstream's; repinning it here would be overwritten next sync."""
+    row = {
+        "name": "actions/checkout",
+        "minimum": "4.2.2",
+        "requirement": "actions/checkout@v4.2.2",
+        "hold": "",
+        "kind": "github-action",
+        "latest": "7.0.1",
+        "outdated": True,
+        "check_failed": False,
+        "deferred_reason": "",
+    }
+
+    assert freshness.gating_rows([], [{**row, "source": "ci.yml, scorecard.yml"}]) == []
+    assert freshness.gating_rows([], [{**row, "source": "ci.yml, codeql.yml"}]) == []
+    assert len(freshness.gating_rows([], [{**row, "source": "codeql.yml"}])) == 1
+
+
+def test_fork_owned_workflows_matches_git() -> None:
+    """The constant must not rot when upstream adds a workflow."""
+    baseline = json.loads(
+        (REPO_ROOT / "tools" / "upstream_baseline.json").read_text(encoding="utf-8")
+    )["reviewed_through"]
+    listed = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", baseline, "--", ".github/workflows"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    if listed.returncode != 0:
+        pytest.skip("baseline commit not available in this checkout")
+    from_git = {line.rsplit("/", 1)[-1] for line in listed.stdout.splitlines() if line.strip()}
+
+    assert set(freshness.UPSTREAM_WORKFLOWS) == from_git
+
+
+def test_the_report_says_which_rows_gate() -> None:
+    report = freshness.render_markdown([], [])
+
+    assert "informational" in report
+    assert "fork-owned rows gate" in report
+    assert "`ci.yml`" in report

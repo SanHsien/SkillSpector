@@ -8,6 +8,19 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **依賴新鮮度只對 fork 持有的宣告紅燈。** `Dependency freshness` workflow 自 2026-09-05（`b02d8ae`）
+  起每次都 failure，因為報告有 25 列來自上游 `pyproject.toml` 的 `REVIEW UPDATE`——而
+  [`DECISIONS.md`](DECISIONS.md) 2026-09-05 那條已經判定那些對本 fork 是**資訊性**的。
+  一個永遠紅、又沒有出口的月檢等於訓練大家忽略它，連真正可行動的那幾列一起忽略。
+  新增 `gating_rows()`：只有**全部宣告它的 workflow 都是 fork 持有**的 Action pin 才會讓 run 失敗；
+  上游持有的 workflow（`ci.yml`、`release.yml`、`scorecard.yml`、`update-pr-branches.yml`）裡的 pin
+  與 `pyproject.toml` 的下限同理，照樣顯示但不擋。報告的兩個章節標題現在直說哪一半會擋。
+  `UPSTREAM_WORKFLOWS` 由 `test_fork_owned_workflows_matches_git` 對 baseline commit 的
+  `git ls-tree` 交叉核對，上游新增 workflow 時不會靜默失準。**這條不適用於安全性通報**，那走
+  [`SECURITY.md`](SECURITY.md)。
+
 ### Fixed
 
 - **依賴新鮮度漏看了每一個 CodeQL pin。** `_USES_RE` 只匹配 `owner/repo@`，而
