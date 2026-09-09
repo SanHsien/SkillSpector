@@ -8,6 +8,21 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **依賴新鮮度漏看了每一個 CodeQL pin。** `_USES_RE` 只匹配 `owner/repo@`，而
+  `github/codeql-action/init`／`/analyze` 是三段路徑，所以 `codeql.yml` 的兩個 pin 從來沒進過報告。
+  路徑改為允許子目錄，查 Releases 時以 `action_repository()` 截回擁有 tag 的 repo。
+- **無法比較的 latest 不再報 OK。** `github/codeql-action` 的 `releases/latest` 回
+  `codeql-bundle-v2.26.4`，與 workflow 釘的 `v4.37.9` 不同編號系統，解析不出數字就一路報 OK。
+  現在解析失敗會改查 tag 列表取最新可解析版本；真的比不了就記 `CHECK FAILED`——不會失敗的檢查不是檢查。
+  三筆新測試釘住上述行為（突變驗證：把 regex 改回 `owner/repo` 會讓其中三筆變紅）。
+- **`src/skillspector/state.py` 補登記進 `docs/DIVERGENCE.md`。** `SKILLSPECTOR_MAX_WORKFLOW_SECONDS`
+  覆寫（commit `185d610`）動到上游持有檔卻沒登記，`tools/check_divergence.py` 因此紅燈；
+  它與已登記的 `static_runner.py` 那列是同一個問題的兩半。
+- **`tools/check_dependency_freshness.py` 補跑 `ruff format`**（在本次改動之前就已不符格式，
+  讓 gate 的 `Ruff format --check` 步驟紅燈）。
+
 ### Added
 
 - 建立 fork 維護鷹架：繁中 `README.md`（英文原檔保留為 `README.en.md`）、`AGENTS.md`、
