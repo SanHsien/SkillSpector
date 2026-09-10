@@ -1,9 +1,9 @@
 {
   "repo": "https://github.com/NVIDIA/SkillSpector.git",
   "branch": "main",
-  "reviewed_through": "7805bb94843d91cb9937f57264ca52642164499b",
-  "reviewed_date": "2026-09-06",
-  "notes": "Fork HEAD remains level with upstream/main at this commit. PRs through #486 were reviewed: #486 is already carried as the documented Windows file-URL divergence; the other newly reviewed PRs remain open and are deferred until upstream merge/head changes. Issues through #485 received a first-pass state and responsibility triage: 137 are closed upstream and 53 remain open, with the complete open-number groups and trigger policy recorded in docs/DECISIONS.md. Watermarks mean reviewed, not resolved.",
+  "reviewed_through": "69dcdfb74487d361ba4c811d088cfdea2ff3a9dc",
+  "reviewed_date": "2026-09-11",
+  "notes": "2026-09-11: merged upstream/main at this commit (19 commits since 7805bb9, releases 2.11.1 and 2.11.2 including #468 configurable workflow deadline). The fork's own src/skillspector/state.py override was dropped in favour of upstream's, per its DIVERGENCE row; the commit axis moves, the PR and issue axes below do not -- PRs #487 onward and issues #486 onward are not yet triaged. Earlier: PRs through #486 were reviewed: #486 is already carried as the documented Windows file-URL divergence; the other newly reviewed PRs remain open and are deferred until upstream merge/head changes. Issues through #485 received a first-pass state and responsibility triage: 137 are closed upstream and 53 remain open, with the complete open-number groups and trigger policy recorded in docs/DECISIONS.md. Watermarks mean reviewed, not resolved.",
   "reviewed_pr_through": 486,
   "reviewed_issue_through": 485
 }

@@ -17,6 +17,14 @@
 
 ### Changed
 
+- **同步上游至 2.11.2（`69dcdfb`，自 `7805bb9` 起 19 個 commit）。** 含 2.11.1 的可設定整體
+  workflow 期限（上游 #468）與 2.11.2 的安全性修正。上游的 `SKILLSPECTOR_MAX_WORKFLOW_SECONDS`
+  與本 fork `185d610` **同名但語意不同**：上游預設 600 秒、只收正有限值（`0`／負數／`nan`
+  會警告並退回預設）；本 fork 原為預設 60 秒、`<= 0` 代表解除。唯一的合併衝突
+  `src/skillspector/state.py` 依其分岔登記列的預先判準（「上游若自行加了同名或同義的覆寫就刪掉本列」）
+  整份採用上游，並從 [`docs/DIVERGENCE.md`](docs/DIVERGENCE.md) 刪除該列。下游
+  `agent-skills`／`book-to-skill` 的關卡原本設 `"0"`，在上游語意下會**靜默退回 600 秒**，
+  已改為兩種語意都成立的 `86400`。每檔的 `SKILLSPECTOR_MAX_STATIC_SECONDS` 仍是本 fork 獨有。
 - **依賴新鮮度只對 fork 持有的宣告紅燈。** `Dependency freshness` workflow 自 2026-09-05（`b02d8ae`）
   起每次都 failure，因為報告有 25 列來自上游 `pyproject.toml` 的 `REVIEW UPDATE`——而
   [`DECISIONS.md`](DECISIONS.md) 2026-09-05 那條已經判定那些對本 fork 是**資訊性**的。

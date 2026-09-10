@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import math
 import operator
 import os
 from dataclasses import dataclass, field
@@ -37,27 +38,40 @@ from skillspector.inspection_ledger import (
     LedgerRecordType,
     ledger_event,
 )
+from skillspector.logging_config import get_logger
 from skillspector.models import Finding
 
-MAX_WORKFLOW_SECONDS = 60.0
-_UNBOUNDED_SECONDS = 86_400.0
-# Companion to SKILLSPECTOR_MAX_STATIC_SECONDS: that one bounds a single artifact,
-# this one bounds the whole graph invocation. A bundle with many components can
-# exhaust it even when no individual file is slow, and every remaining file is then
-# recorded as runtime_limit with zero findings -- a scan that reports clean because
-# it stopped looking. SKILLSPECTOR_MAX_WORKFLOW_SECONDS raises it; <= 0 removes the
-# ceiling (_UNBOUNDED_SECONDS, one day -- a large finite value rather than math.inf,
-# which overflows when a remaining-time budget is converted to an integer timeout).
-# The default is unchanged.
-if (_env_workflow_seconds := os.environ.get("SKILLSPECTOR_MAX_WORKFLOW_SECONDS")) is not None:
+logger = get_logger(__name__)
+
+DEFAULT_MAX_WORKFLOW_SECONDS = 600.0
+
+
+def _workflow_max_seconds_from_environment(value: str | None) -> float:
+    """Return a positive finite workflow deadline or the safe default."""
+    if value is None:
+        return DEFAULT_MAX_WORKFLOW_SECONDS
     try:
-        _parsed_workflow_seconds = float(_env_workflow_seconds)
+        seconds = float(value)
     except ValueError:
-        pass
-    else:
-        MAX_WORKFLOW_SECONDS = (
-            _UNBOUNDED_SECONDS if _parsed_workflow_seconds <= 0 else _parsed_workflow_seconds
+        logger.warning(
+            "SKILLSPECTOR_MAX_WORKFLOW_SECONDS=%r is not numeric, using default %.1fs",
+            value,
+            DEFAULT_MAX_WORKFLOW_SECONDS,
         )
+        return DEFAULT_MAX_WORKFLOW_SECONDS
+    if not math.isfinite(seconds) or seconds <= 0:
+        logger.warning(
+            "SKILLSPECTOR_MAX_WORKFLOW_SECONDS=%r must be finite and positive, using default %.1fs",
+            value,
+            DEFAULT_MAX_WORKFLOW_SECONDS,
+        )
+        return DEFAULT_MAX_WORKFLOW_SECONDS
+    return seconds
+
+
+MAX_WORKFLOW_SECONDS = _workflow_max_seconds_from_environment(
+    os.environ.get("SKILLSPECTOR_MAX_WORKFLOW_SECONDS")
+)
 MAX_WORKFLOW_BYTES = 64 * 1024 * 1024
 MAX_WORKFLOW_ARTIFACTS = 10_000
 MAX_WORKFLOW_LIMITATION_RECORDS = 256

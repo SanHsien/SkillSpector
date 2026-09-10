@@ -168,3 +168,26 @@ issue 水位不是以「看過標題」草率歸零：截至 #485 共 190 筆，
 
 這 53 筆不是 fork 待辦清單：核心產品以上游為準；與 open PR 對應者等合併，其餘在上游狀態或
 head 改變、或本 fork 實際重現時再評估。水位推進只表示本輪已分類，不表示問題已解決。
+
+## 2026-09-11：同步上游 2.11.2，`state.py` 的整體預算覆寫改採上游
+
+**決定**：合併 `upstream/main`（`69dcdfb`，19 個 commit，含 2.11.1、2.11.2）。唯一衝突
+`src/skillspector/state.py` 整份採用上游並刪除其分岔登記列；`tools/upstream_baseline.json` 的
+commit 軸推進到 `69dcdfb`，PR／issue 軸不動。下游關卡的兩個預算值由 `"0"` 改為 `"86400"`。
+
+**理由**：上游 #468 用**同一個變數名** `SKILLSPECTOR_MAX_WORKFLOW_SECONDS` 做了同一件事，
+而且比本 fork `185d610` 完整——驗證有限正值，並把 transitive 預算（`cli.py` 的
+`_TRANSITIVE_MAX_SECONDS`）一起接上。那一列登記時就寫了「上游若自行加了同名或同義的覆寫就刪掉本列」，
+這次是照預先寫好的判準執行，不是重新判斷。但**語意不同**：上游把 `0`／負數／`nan` 視為無效、
+警告後退回 600 秒預設，本 fork 原本把 `<= 0` 當成解除上限。下游關卡若維持 `"0"`，換成上游
+版本後會**靜默**變成 600 秒——正是當初要消除的「看起來解除了、實際沒有」。`86400` 在兩種語意下
+都代表同一件事。另外 2.11.2 是安全性版本，下游用 `requirements-security.txt` 釘在舊 commit 的
+掃描器把關，等於缺修正；這是這次不等 PR 分診、先推 commit 軸的原因。
+
+**限制**：
+
+- PR 軸（#487 起）與 issue 軸（#486 起）**沒有**跟著推，`reviewed_*_through` 仍只表示分類到哪。
+- 每檔的 `SKILLSPECTOR_MAX_STATIC_SECONDS` 仍是本 fork 獨有、`<= 0` 解除；回貢時要改成對齊上游的
+  「只收正有限值」語意。
+- 本機驗證要在 OneDrive 外的 venv 以 `UV_LINK_MODE=copy` 跑（見 `AGENTS.md`）；在 repo 內
+  `.venv` 跑出來的紅燈可能是環境造成的，不能當成回歸證據。

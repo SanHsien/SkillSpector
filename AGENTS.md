@@ -63,17 +63,20 @@ YARA 簽章 + OSV.dev 即時 CVE 查詢），Stage 2 可選的 LLM 語意分析�
   Ruff check／format → CLI version smoke → 分岔登記與鎖定依賴邊界檢查 →
   dependency freshness report；不帶 `-Quick` 的完整模式再加
   `uv run pytest -m "not integration and not provider" tests/ -q`。
-- **⚠️ 跑測試前先確認用的是本 repo 的 `.venv`**：本機環境設了全域
-  `UV_PROJECT_ENVIRONMENT=C:\tmp\agentdeck`，會讓**每一個** uv 專案共用同一個 venv。
-  症狀是本 repo 的 `.venv` 不存在、套件集合被別的專案洗掉（實測 `hatchling` 不見導致
-  `test_wheel_contents.py` 收集失敗），而且另一個行程佔用時 `uv sync --reinstall` 會丟
-  `os error 32`。這會**假造出 23 筆與程式碼無關的紅燈**。每個指令前面加
-  `UV_PROJECT_ENVIRONMENT=.venv`（或先 `$env:UV_PROJECT_ENVIRONMENT=".venv"`），
-  例：`UV_PROJECT_ENVIRONMENT=.venv uv run --python 3.13 pytest -m "not integration and not provider" tests/ -q`。
-  下方的通過數字都是在本 repo 自己的 `.venv` 底下量到的。
+- **⚠️ 虛擬環境放在 OneDrive 外，並用複製模式安裝**：本 repo 位於 OneDrive 底下，`.venv`
+  的目錄會變成 Files On-Demand 佔位目錄（`ReparsePoint`），版本號一變，`uv sync` 刪舊
+  `dist-info` 時就 `存取被拒 (os error 5)`；uv 預設的硬連結安裝還會讓快取檔被雲端過濾器認領，
+  之後連 OneDrive 外的 venv 也裝不上（`os error 396`），留下「有 metadata、沒模組」的半殘
+  套件（2026-09-11 實測 `jsonpatch`，pytest 收集階段 75 個錯誤）。**不要**用 `setx` 設全域
+  `UV_PROJECT_ENVIRONMENT`——2026-09-06 就是全域值讓所有 uv 專案共用一個 venv，假造出 23 筆
+  與程式碼無關的紅燈（該全域值已移除）。每個指令前面帶上
+  `UV_PROJECT_ENVIRONMENT='C:\tmp\skillspector-fork-venv' UV_LINK_MODE=copy`，例：
+  `UV_PROJECT_ENVIRONMENT='C:\tmp\skillspector-fork-venv' UV_LINK_MODE=copy uv run --python 3.13 pytest -m "not integration and not provider" tests/ -q`。
+  套件半殘時用 `uv sync --all-extras --reinstall-package <名稱>` 修。在這個環境以外跑出的紅燈
+  可能是環境造成的，不能直接當成回歸證據。
 - **Windows 全綠是完成判準**：本機 Windows 執行
   `uv run pytest -m "not integration and not provider" tests/` 目前為
-  **3959 passed / 0 failed / 39 skipped / 38 deselected / 4 xfailed**。原本的 23 筆紅燈已全部處理，逐筆判準登記於
+  **4009 passed / 0 failed / 39 skipped / 38 deselected / 4 xfailed**（2026-09-11，上游 2.11.2）。原本的 23 筆紅燈已全部處理，逐筆判準登記於
   [`docs/DIVERGENCE.md`](docs/DIVERGENCE.md)。**不要接受任何新的紅燈**：出現紅燈就是回歸，
   不是「已知的 Windows 落差」。跳過的 39 筆全部由 `tests/platform_support.py` 的能力探測
   決定（symlink／FIFO／`os.geteuid`／PATH 上的 shebang 腳本），不是 `sys.platform` 硬判。

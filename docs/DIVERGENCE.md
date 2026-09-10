@@ -19,7 +19,7 @@
 | 時間 | 指令 | 結果 |
 |---|---|---|
 | fork 當下（未改任何檔） | `uv run pytest -m "not integration and not provider" tests/` | 3943 passed / **23 failed** / 26 skipped |
-| 本表所列分岔套用後 | 同上 | **3959 passed / 0 failed / 39 skipped / 38 deselected / 4 xfailed** |
+| 本表所列分岔套用後（2026-09-11，同步上游 2.11.2） | 同上（OneDrive 外 venv、`UV_LINK_MODE=copy`，分兩批） | **4009 passed / 0 failed / 39 skipped / 38 deselected / 4 xfailed** |
 
 23 筆紅燈全部是**測試對 POSIX 的假設**，不是產品在 Windows 上的行為錯誤。處理原則分兩類：
 
@@ -44,13 +44,12 @@
 [PR #486](https://github.com/NVIDIA/SkillSpector/pull/486)（branch `fix/windows-file-url-editable-dependency`，帶 DCO sign-off）。**上游 merge 後就從本表刪掉這一列**，改成同步上游即可 |
 | `.gitignore` | 上游版本 | 檔尾追加 fork 區塊（`.ruff_cache/`、`.mypy_cache/`、兩份生成報告） | 本 fork 的維護工具會在工作區產生報告檔，不加就會被 `git add -A` 收進去 | **保留**。上游變更照常合併，追加區塊在檔尾，衝突機率低 |
 | `README.md` | 英文說明文件 | `git mv` 成 `README.en.md`（內容原封不動，只在頂部加一行語言列），另新寫繁中 `README.md` | README 是上游最常動的檔。就地翻譯會讓每次同步整檔衝突；改名保留鏡像，同步時 `README.en.md` 可以直接吃上游的 diff | **保留**。同步上游時：`git checkout upstream/main -- README.md && git mv -f README.md README.en.md`，重加語言列，再人工判斷繁中 `README.md` 要不要跟著更新 |
-| `tests/nodes/test_security_end_to_end.py` | 大型安全 fixture 使用產品的每檔 30 秒、YARA 載入 5 秒與 SC8 traversal 5 秒上限 | 只在兩個 oversized acceptance tests 將每檔額度調為 600 秒、YARA／SC8 調為 60 秒 | Windows 冷啟動實測會分別命中 static 與 `static_patterns_supply_chain_bytecode` runtime limit；產品預設與一般測試均不變 | **保留到上游讓測試 budget 可注入或縮短 fixture 成本**；不得因此放寬產品預設。下一列的環境變數就是那個注入點，兩者可合併後刪除本列 |
-| `src/skillspector/nodes/analyzers/static_runner.py` | `MAX_STATIC_ANALYSIS_SECONDS_PER_ARTIFACT = 30.0` 寫死，無任何覆寫途徑 | 加 `SKILLSPECTOR_MAX_STATIC_SECONDS` 環境變數覆寫（**預設值不變**；`<= 0` 代表取消上限）。新增 `tests/nodes/analyzers/test_static_runner_time_budget.py` 5 筆測試釘住行為 | 30 秒是防病態輸入的上限，不是「正常檔案該花多久」的宣告。慢速儲存（OneDrive）上一個 25 KB reference 檔會壓線，**同一棵樹會因為當下機器負載而時綠時紅**——實測 `marketingskills/skills/ad-creative` 在背景有工作時 `exit 2`／`execution_successful: false`，機器閒下來就過。掃描關卡若建在這種訊號上等於沒有關卡。覆寫讓呼叫端可以用時間換完整結果 | **保留，值得回貢**（`SKILLSPECTOR_OSV_TIMEOUT`、`SKILLSPECTOR_MAX_LLM_CONCURRENCY` 已是同一種寫法，這只是補齊第三個）。上游若自行加了同名或同義的覆寫就刪掉本列 |
-| `src/skillspector/state.py` | `MAX_WORKFLOW_SECONDS` 寫死，無覆寫途徑 | 加 `SKILLSPECTOR_MAX_WORKFLOW_SECONDS` 環境變數覆寫（**預設值不變**；`<= 0` 代表取消上限，實作為 `_UNBOUNDED_SECONDS = 86_400.0` 而非 `math.inf`——後者換算成整數 timeout 時會溢位） | 上一列的每檔上限管的是單一產物，這一列管的是整個 graph 呼叫。元件多的 bundle 就算沒有任何單一檔案慢，也會耗盡整體額度，剩下的檔案全部記成 `runtime_limit` 且零 findings——**掃描因為停止查看而回報乾淨**。與上一列同一個問題的兩半，缺一個就補不起來 | **保留，與上一列一起回貢**。上游若自行加了同名或同義的覆寫就刪掉本列 |
+| `tests/nodes/test_security_end_to_end.py` | 大型安全 fixture 使用產品的每檔 30 秒、YARA 載入 5 秒與 SC8 traversal 5 秒上限（整體 workflow 上限自上游 2.11.1 起是 600 秒，且可由 `SKILLSPECTOR_MAX_WORKFLOW_SECONDS` 覆寫） | 只在兩個 oversized acceptance tests 將每檔額度調為 600 秒、YARA／SC8 調為 60 秒 | Windows 冷啟動實測會分別命中 static 與 `static_patterns_supply_chain_bytecode` runtime limit；產品預設與一般測試均不變 | **保留到上游讓每檔、YARA、SC8 三個預算也可注入，或縮短 fixture 成本**；不得因此放寬產品預設。整體 workflow 那個上游已經做了，剩下這三個——下一列的 `SKILLSPECTOR_MAX_STATIC_SECONDS` 只補了每檔那一個 |
+| `src/skillspector/nodes/analyzers/static_runner.py` | `MAX_STATIC_ANALYSIS_SECONDS_PER_ARTIFACT = 30.0` 寫死，無任何覆寫途徑 | 加 `SKILLSPECTOR_MAX_STATIC_SECONDS` 環境變數覆寫（**預設值不變**；`<= 0` 代表取消上限，實作為 86400 秒而非 `math.inf`）。`tests/nodes/analyzers/test_static_runner_time_budget.py` 7 筆測試釘住行為 | 30 秒是防病態輸入的上限，不是「正常檔案該花多久」的宣告。慢速儲存（OneDrive）上一個 25 KB reference 檔會壓線，**同一棵樹會因為當下機器負載而時綠時紅**——實測 `marketingskills/skills/ad-creative` 在背景有工作時 `exit 2`／`execution_successful: false`，機器閒下來就過。掃描關卡若建在這種訊號上等於沒有關卡。覆寫讓呼叫端可以用時間換完整結果 | **保留，值得回貢**——上游 2.11.1 已用同一模式把整體預算做成 `SKILLSPECTOR_MAX_WORKFLOW_SECONDS`，這是補齊每檔那一半。上游若自行加了同名或同義的覆寫就刪掉本列。**上游那個變數只收正有限值**（`0`／負數／`nan` 會警告並退回預設）；回貢時語意要對齊它，下游關卡因此一律設 `86400` 而非 `0`，兩種語意下都成立 |
 
 ## 已知但**不**登記為分岔的上游問題
 
 | 現象 | 判斷 |
 |---|---|
-| `tests/nodes/test_security_end_to_end.py` 的大型案例在冷啟動時可能耗盡 SC8 5 秒、每檔 30 秒或整體 60 秒上限 | fork 只對兩個 oversized acceptance tests 注入寬裕額度；產品限制不變。上游若提供正式 test-budget 注入點就改用並刪除本分岔 |
+| `tests/nodes/test_security_end_to_end.py` 的大型案例在冷啟動時可能耗盡 SC8 5 秒或每檔 30 秒上限（整體上限自上游 2.11.1 起為 600 秒，已不是瓶頸） | fork 只對兩個 oversized acceptance tests 注入寬裕額度；產品限制不變。上游若提供每檔／YARA／SC8 的正式 test-budget 注入點就改用並刪除本分岔 |
 | `tools/check_dependency_freshness.py` 對 `pyproject.toml` 的 Python 依賴回報 25 列 `REVIEW UPDATE` | `pyproject.toml` 是上游持有檔，宣告的是相容性下限（`>=`）不是釘選。本 fork 不動它，這些列對本 fork 是**資訊性**的；真正可行動的是 fork 持有的 workflow 裡釘選的 GitHub Action。詳見 [`DECISIONS.md`](DECISIONS.md) |
