@@ -34,10 +34,10 @@ function Invoke-Step {
 # bypasses the Makefile entirely and calls `uv` / `ruff` / `pytest` directly instead
 # of wrapping `make` targets.
 Invoke-Step -Label "Ruff check" -Exe "uv" -Arguments @(
-    "run", "ruff", "check", "src/", "tests/", "tools/check_divergence.py", "tools/check_pin_bounds.py"
+    "run", "ruff", "check", "src/", "tests/", "tools/"
 )
 Invoke-Step -Label "Ruff format --check" -Exe "uv" -Arguments @(
-    "run", "ruff", "format", "--check", "src/", "tests/", "tools/check_divergence.py", "tools/check_pin_bounds.py"
+    "run", "ruff", "format", "--check", "src/", "tests/", "tools/"
 )
 Invoke-Step -Label "Version smoke test" -Exe "uv" -Arguments @("run", "skillspector", "--version")
 Invoke-Step -Label "Divergence registry" -Exe "uv" -Arguments @(

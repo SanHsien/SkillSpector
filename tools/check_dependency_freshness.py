@@ -24,8 +24,8 @@ import re
 import tomllib
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 USER_AGENT = "skillspector-dependency-freshness"
