@@ -8,6 +8,21 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **上游 PR/issue 水位推進到 #527／#524（commit 軸不動，仍是 `69dcdfb`）。** 31 筆新 PR
+  （#488–#527）、10 筆新 issue（#486–#524）逐筆讀 diff／檔案清單後判定；#493／#507／#508／
+  #511 用 `git merge-base --is-ancestor` 確認已隨 2.11.1／2.11.2 同步進 `main`，其餘一律
+  「等上游合併」，無一筆現在採用。逐筆判定見 [`docs/DECISIONS.md`](docs/DECISIONS.md)
+  2026-09-11（同日第二輪）條目。兩筆需要特別記住：#522 用**不同名、不同語意**的環境變數
+  `SKILLSPECTOR_MAX_STATIC_ANALYSIS_SECONDS_PER_ARTIFACT`（預設 300 秒，無「解除上限」語意）
+  對應本 fork 的 `SKILLSPECTOR_MAX_STATIC_SECONDS`（預設 30 秒，`<=0` 解除上限），合併時不能
+  直接刪除 [`docs/DIVERGENCE.md`](docs/DIVERGENCE.md) 對應列，需要先遷移三個下游 repo 的
+  環境變數名並重新驗證；#490 是延伸本 fork 自己開的上游 PR #486（同一 file URL 轉換 bug），
+  補了 Python 3.14＋POSIX 空 authority 的邊界情況，本 fork 目前踩不到，維持等待，不現在
+  cherry-pick。另外 #501/#502/#503/#504/#505/#518 六筆 Windows test 修正與本 fork
+  `DIVERGENCE.md` 既有分岔列高度重疊（#503／#504 手法逐字相同），合併後有機會直接刪列。
+
 ### Fixed
 
 - **大型 acceptance test 在 Linux CI 間歇失敗。** `test_rd04_large_file_pair_detects_start_boundary_and_end` 在 run 34543263439 以 `analysis_completeness.is_complete is False` 失敗：負載下的 runner 讓第三個掃描介面用完每檔 30 秒額度。`_allow_slow_static_fixture` 原本只在 Windows 放寬，但 CI 跑在 ubuntu，放寬從未生效；上游 CI 也有同樣的失敗（run 34447095261、34442162097）。改為所有平台套用，只影響兩個 oversized fixture，產品預設不變；見 [`docs/DIVERGENCE.md`](docs/DIVERGENCE.md)。

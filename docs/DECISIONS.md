@@ -191,3 +191,154 @@ commit 軸推進到 `69dcdfb`，PR／issue 軸不動。下游關卡的兩個預�
   「只收正有限值」語意。
 - 本機驗證要在 OneDrive 外的 venv 以 `UV_LINK_MODE=copy` 跑（見 `AGENTS.md`）；在 repo 內
   `.venv` 跑出來的紅燈可能是環境造成的，不能當成回歸證據。
+
+## 2026-09-11（同日第二輪）：PR #488–#527 與 issue #486–#524 首輪水位
+
+`git log upstream/main` 沒有新 commit（仍是 `69dcdfb`），commit 軸不動。PR／issue 軸用
+`python tools/check_upstream_updates.py --strict` 列出 31 筆新 PR、10 筆新 issue，逐筆讀
+`gh pr view --json files/body` 或 diff 後判定。
+
+**已透過同步採用（4 筆，`git merge-base --is-ancestor <mergeCommit> HEAD` 驗證為 true）**：
+
+| PR | mergeCommit | 說明 |
+|---|---|---|
+| #493 | `704bc95` | release: 2.11.1，已隨 2026-09-11 第一輪同步進 `main` |
+| #507 | `a7dfab7` | fix: 修正 CI reference completeness，已在 `main` |
+| #508 | `f5bb619` | fix: printf runtime path accounting，已在 `main` |
+| #511 | `69dcdfb` | release: 2.11.2，即目前 `reviewed_through` 本身 |
+
+**merge 但未進 `main`（1 筆，需要單獨判定，不算「已透過同步採用」）**：
+
+- **#521**（`codex/linear-json-quote-scan`）：`gh pr view` 顯示已 MERGED，但
+  `baseRefName` 是 `codex/fix-documentation-analysis-limits`——也就是仍 open 的 #516 的
+  head branch，不是 `main`；`git merge-base --is-ancestor d3dd543... upstream/main` 回傳
+  false，確認程式碼只存在於那條未合併的 stack 裡。判定：與 #516 同組，**等上游合併**
+  （#516 合併時 #521 一併進來）。
+
+**其餘 26 筆 PR 判定：等上游合併**（無一筆採用），理由分組如下：
+
+| PR | 對應 issue | 一句話理由 |
+|---|---|---|
+| #488 / #489 | #487 | YARA webshell 樣式誤判（德文 "behindert"／"WSO " 散文），兩筆疊加嘗試，上游還沒收斂到一條 |
+| #490 | #485 | 見下方專節——延伸本 fork 自己開的 #486 |
+| #491 | — | 12+ 個 static analyzer 檔的樣式跨段落誤連修正，核心規則橫向改動，跟 #409 同類型風險 |
+| #492 | — | E2 子行程環境變數豁免，單一分析器規則調整，範圍小但仍是核心偵測邏輯 |
+| #496 | #494 | Gemini provider 功能新增（20+ 檔），本 fork 定位是 Windows 骨架不承接功能擴充，與 NIM provider（`upstream-review/feature-nvidia-nim-integration`）同一類判定 |
+| #497 | — | 24 個檔案的 Python 執行介面 shell truthiness 覆蓋率修正，核心分析器大改動 |
+| #498 | — | 新增一整個 "offline security inspection plugin"（80+ 檔，含 runtime/drift/policy），大型功能擴充，不適用 |
+| #499 | #495 | recursive scan 靜默跳過 symlinked skill 但回報 `analysis_completeness: complete`，MCP 判定正確性問題，範圍小（2 檔）但仍是核心邏輯 |
+| #501–#505、#518 | — | 見下方專節——直接對應本 fork 已登記的 Windows test 分岔列 |
+| #506 | #500 | AS3 誤判 skill 自我參照，規則檔小範圍修正 |
+| #509 | — | 過大檔案不得產生零 finding 報告（LLM 階段納入＋AE7 覆蓋率 finding），核心 ledger／build_context 邏輯 |
+| #513 | #512 | P6 誤判 HTML「輸出規則」文件標題，8 檔（含新增 `llm_utils.py` 邏輯） |
+| #514 | — | printf 重建保持不完整，7 檔，runtime reconstruction 核心邏輯 |
+| #516 / #521 | #515 | 文件裡的 code span／JSON placeholder 誤觸發不完整分析，11 檔＋疊加的 #521，同一條 stack |
+| #517 | — | `__dict__` subscript 應標記為 reflective attribute access，2 檔小範圍 |
+| #520 | #519 | LLM 呼叫在動態 deadline 下每次重建 client 導致 httpx pool 洩漏／`Event loop is closed`，健壯性修正 |
+| #522 | — | 見下方專節 |
+| #525 | #524 | 引號包住的版本號被誤判成缺檔參照，2 檔小範圍 |
+| #526 | #510 | 無法解析的參照不該擋住 `safe_to_install`，2 檔小範圍 |
+| #527 | — | 環境變數選擇的 Bedrock provider 未被視為可用 LLM，3 檔 provider 邏輯修正 |
+
+判定理由統一套用 `FORK.md`「回貢判準」與本檔既有原則：核心分析器／掃描 pipeline／provider
+邏輯一律等上游合併（風險與 `#409`/`#410` 同類）；功能擴充（#496 Gemini、#498 offline plugin）
+不承接，理由與 NIM provider 判定一致；只有測試檔／維護工具且能證明本 fork 已踩到同一缺陷的
+才落入可採用的例外，而這一輪唯一落在例外範圍內的候選（#501–#505、#518）判定為「等合併」而非
+立即採用，理由見下方專節。
+
+### #522 `codex/configurable-static-analysis-budget` vs. 本 fork `SKILLSPECTOR_MAX_STATIC_SECONDS`
+
+**不是同名變數，語意也不同**——這是本輪最需要記住的一筆：
+
+| | 本 fork（`static_runner.py` 既有分岔） | 上游 #522 |
+|---|---|---|
+| 環境變數名 | `SKILLSPECTOR_MAX_STATIC_SECONDS` | `SKILLSPECTOR_MAX_STATIC_ANALYSIS_SECONDS_PER_ARTIFACT` |
+| 預設值 | 30 秒（不變） | **300 秒**（上調 10 倍） |
+| 無效／`<=0`／非有限值 | 視為「解除上限」，實作成 86400 秒 | 一律警告後退回預設（300 秒），**沒有「解除上限」這個概念** |
+| 影響範圍 | `static_runner.py` + `static_yara.py` 共用同一個模組層級常數 | 同左，做法（模組匯入時讀環境變數）相同 |
+
+**合併時本 fork 必須做的事**：
+
+1. **不能只採用上游版本了事**。三個下游 repo（`agent-skills`／`book-to-skill`／
+   `marketingskills`）目前設的是 `SKILLSPECTOR_MAX_STATIC_SECONDS=86400` 或 `300`。上游版本
+   讀的是不同的變數名，若照上游整份取代，下游那個環境變數會被**靜默忽略**、有效值退回
+   300 秒預設——這正是 2026-09-11 第一輪同步處理 `SKILLSPECTOR_MAX_WORKFLOW_SECONDS` 時
+   要避免的「看起來解除了、實際沒有」的同一種失效模式，只是這次連變數名都對不上，比那次
+   更隱蔽。
+   - 若三個下游目前設的是 `300`：數值本身與上游新預設一致，改用新變數名還算安全，但仍需要
+     三個下游各自把環境變數名同步成 `SKILLSPECTOR_MAX_STATIC_ANALYSIS_SECONDS_PER_ARTIFACT`。
+   - 若設的是 `86400`（本 fork 為了 OneDrive 慢速儲存的「解除上限」用法）：上游沒有解除上限
+     的概念，`86400` 在上游語意下就是「一個很大的正有限值」，效果等價，但**變數名必須換**，
+     否則會退回 300 秒——300 秒是否夠 OneDrive 冷啟動需要重新實測，不能假設。
+2. 合併後 `docs/DIVERGENCE.md` 的 `static_runner.py` 那一列**不能直接刪除**（不像
+   `SKILLSPECTOR_MAX_WORKFLOW_SECONDS` 那次），因為變數名不同、語意也不同，是「上游新增了
+   一個相近但不相容的機制」，不是「上游做了同名同義的事」。需要重新寫一列，記錄改用上游
+   變數名的遷移步驟，而不是單純刪除。
+3. **觸發點**：上游合併 #522；屆時第一步是重跑三個下游 repo 的環境變數設定並用實際 OneDrive
+   環境驗證 300 秒（或下游各自設定的值）是否足夠，再決定 DIVERGENCE.md 該列怎麼改寫。
+
+### #490 `codex/fix-editable-file-url-conversion` vs. 本 fork 已開的 #486
+
+**#490 明確建立在本 fork 自己的 #486 之上**——PR 內文寫「This builds on #486 and preserves
+the original author attribution while closing the compatibility gap found during validation.
+Fixes #485」，作者掛名 "Codex on behalf of Mohit Gupta"（NVIDIA 端）。差異：#486（本 fork
+提交）用 `urllib.request.url2pathname(parsed.path)`；#490 額外處理「空 authority、以 `//`
+開頭」的 POSIX file URL 形式（`file:////two-leading-slash-path`），因為 `url2pathname` 需要
+保留這個分隔符，且 Python 3.14 對這個轉換的行為與更早版本不同——這是 #486 沒有覆蓋的邊界
+情況，屬於 Python 3.14 + POSIX 的組合，本 fork 的 Windows-only 開發／驗收環境不會踩到，
+也沒有本機證據顯示現有 `main` 上的 #486 版本在本 fork 實際使用場景下有缺陷。
+
+**判定：不現在採用 #490 的診斷改動**——`scripts/compare_scan_accuracy.py` 雖然是
+maintenance-tooling-only（符合可採用例外的檔案範圍），但「本 fork demonstrably hits this
+defect」這個前提不成立（本機是 Windows、Python 3.13 開發環境，摸不到這個 POSIX+3.14 邊界
+情況），現在 cherry-pick 等於在上游還在验证同一份改動時提前分岔，之後 #490 合併還要重新对齐。
+
+**對本 fork 自己 #486 的建議**：
+
+1. **不要現在關閉或修改 #486**——維護者尚未在本次對話同意回貢層級的改動，且 #490 本身也還
+   是 open，上游尚未定案要不要直接合併 #490 取代 #486，或是要求 #486 補上同樣的邊界情況。
+2. **觸發點**：#490 合併後，`#486` 大機率會被上游關閉並註記「由 #490 取代」（因為 #490 已經
+   吸收了原作者署名並涵蓋 #486 的全部範圍再加上邊界修正）——屆時本 fork 只需要
+   `git fetch upstream && git merge` 正常同步吸收 #490 的內容，`docs/DIVERGENCE.md` 裡
+   `scripts/compare_scan_accuracy.py` 那一列即可比照 2026-09-11 `state.py` 的處理方式整份
+   改採上游版本並刪除分岔列；若上游反而要求 #486 自行補齊邊界情況，則維護者需要決定是否
+   在 #486 分支上再推一個 commit（屬於回貢層級的改動，需要當次對話明確同意）。
+
+### #501–#505、#518：與本 fork 既有 Windows test 分岔幾乎逐字重複
+
+這六筆全部只改測試檔，且改法與本 fork `docs/DIVERGENCE.md` 已登記的分岔幾乎一致：
+
+| 上游 PR | 改的檔案 | 與本 fork 分岔列的關係 |
+|---|---|---|
+| #501 | `tests/nodes/test_build_context.py` | symlink 測試改成 `try/except OSError: pytest.skip(...)`，與本 fork 的 `@pytest.mark.skipif` 能力探測目的相同，手法不同（try/except vs. 前置探測） |
+| #502 | 同上 | FIFO 測試加 `if not hasattr(os, "mkfifo"): pytest.skip(...)`，與本 fork 手法幾乎一致 |
+| #503 | `tests/nodes/test_build_context.py`、`tests/unit/test_input_handler.py` | 同時攔截 `os.open` 與 `_open_regular_file_from_windows_handle`——**與本 fork 現有分岔列逐字同構**，連函式名稱都一樣 |
+| #504 | `tests/nodes/analyzers/test_static_yara.py` | 加 `encoding="utf-8"`，與本 fork 分岔列完全相同的一行改動 |
+| #505、#518 | `tests/nodes/test_build_context.py` | 用逐處 `newline="\n"` / `write_bytes`／`read_bytes` 取代本 fork `tests/conftest.py` 的全域 autouse fixture `pin_fixture_newlines_to_lf`，達成同一效果（釘住 LF）但手法不同（局部 vs. 全域） |
+
+**判定：等上游合併**，不現在採用——本 fork 已經有等效的本機修正在跑（4009 全綠），現在
+cherry-pick 上游版本沒有淨收益，只會在上游合併時製造衝突。
+
+**明確的分岔列刪除觸發點**（`FORK.md`「A PR that would let the fork delete a divergence row
+is worth calling out explicitly」）：
+
+- #501＋#502 合併 → `tests/nodes/test_build_context.py` 的 symlink／FIFO skipif 分岔列可刪除
+  （若上游手法與本 fork 探測方式不同，改採上游版本、刪除本 fork 對應 marker）。
+- #503 合併 → `tests/unit/test_input_handler.py` 分岔列可**直接刪除**，因為手法逐字相同。
+- #504 合併 → `tests/nodes/analyzers/test_static_yara.py` 分岔列可**直接刪除**，同上理由。
+- #505＋#518 合併 → `tests/nodes/test_build_context.py` 裡與 LF 相關的斷言不再需要
+  `tests/conftest.py` 的 `pin_fixture_newlines_to_lf`（但要先確認該 autouse fixture有沒有
+  被其他測試檔依賴，若有，只能縮小適用範圍不能整個刪除）。
+
+### 下一步（優先序）
+
+1. **#490**：追蹤是否合併、#486 是否被上游關閉並註記「由 #490 取代」；合併後正常同步即可，
+   不需要單獨移植。
+2. **#522**：追蹤是否合併；合併後第一件事是重跑三個下游 repo（`agent-skills`／
+   `book-to-skill`／`marketingskills`）的環境變數遷移與 OneDrive 實測，再改寫
+   `docs/DIVERGENCE.md` 對應列（不是刪除）。
+3. **#501/#502/#503/#504/#505/#518**：追蹤是否合併；合併後逐一比對能不能刪除
+   `docs/DIVERGENCE.md` 對應列。
+4. **#516/#521（documentation 誤判分析限制）**：與 #515 對應，維護者若實際遇到文件掃描誤判
+   可提前確認 up-to-date 進度，否則按序等待。
+5. 其餘 22 筆維持「等上游合併」，無本機證據顯示已影響維護者實際掃描結果。

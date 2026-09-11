@@ -12,17 +12,20 @@
 引用自 `tools/upstream_baseline.json`：
 
 ```
-reviewed_through:       7805bb94843d91cb9937f57264ca52642164499b
-reviewed_pr_through:    486
-reviewed_issue_through: 485
+reviewed_through:       69dcdfb74487d361ba4c811d088cfdea2ff3a9dc
+reviewed_pr_through:    527
+reviewed_issue_through: 524
 ```
 
-- `reviewed_through` 是 fork HEAD 對齊 `upstream/main` tip 的 commit；此刻整個工作樹與上游
-  逐位元組相同。
-- `reviewed_pr_through` = 486：#463–#486 的 15 筆新增 PR 已逐筆讀 diff；除本 fork 已採用的
-  #486 外都仍 open，維持等待。更早的八筆 open PR 判定仍在 Group C。
-- `reviewed_issue_through` = 485：190 筆 issue 已按 upstream closed state 與 53 筆仍 open 的
-  責任面完成首輪分類；這是「已判斷」，不是宣稱所有 open issue 都已修正。
+- `reviewed_through` 已於 2026-09-11 推進到 `69dcdfb`（同步上游 2.11.1／2.11.2，19 個
+  commit），fork HEAD 對齊 `upstream/main` tip；本節上方「Group A–D」36 個舊分支的判定
+  維持不變（水位機制只記軸位，不影響既有判定）。
+- `reviewed_pr_through` = 527：#488–#527 共 31 筆新增 PR（含 #493／#511 兩個 release PR）
+  已逐筆核對；#493／#507／#508／#511 用 `git merge-base --is-ancestor` 確認已在 `main`，
+  其餘 27 筆（含合併進未完成 stack 的 #521）維持等待上游合併。逐筆判定、#522 與 #490 的
+  專節比對見 [`DECISIONS.md`](DECISIONS.md) 2026-09-11（同日第二輪）條目。
+- `reviewed_issue_through` = 524：#486–#524 共 10 筆新增 issue 已對應到上表 PR 或標記
+  「等對應 PR 合併」，見 `DECISIONS.md` 同一條目。
 
 ## Group A／B：內容已在 `main` 或已隨上游 PR 定案的分支
 
@@ -255,3 +258,16 @@ PR 的 head，內容是否在樹裡取決於該 PR 是否合併。
 3. #466 若合併，只吸收不衝突的貢獻者指引；本 fork 的 `CLAUDE.md` 仍維持指向 `AGENTS.md` 的薄指標。
 4. issue 53 筆 open 清冊與逐筆 PR 判定以 [`DECISIONS.md`](DECISIONS.md) 為準；新編號從
    PR #487、issue #486 起看，不重掃本輪 190 筆。
+
+## 2026-09-11（同日第二輪）：目前下一步
+
+PR #487、issue #486 起的新一輪（PR 到 #527、issue 到 #524）已完成首輪triage，逐筆判定見
+[`DECISIONS.md`](DECISIONS.md) 對應條目，不在本檔重複列出。摘要：
+
+1. 追蹤 #490（延伸本 fork 自己的 #486，見 `DECISIONS.md` 專節）與 #522（`static_runner.py`
+   的環境變數覆寫，**變數名與語意都與本 fork 既有分岔不同**，見 `DECISIONS.md` 專節）是否
+   合併。
+2. 追蹤 #501/#502/#503/#504/#505/#518 六筆 Windows test 修正是否合併——內容與本 fork
+   `docs/DIVERGENCE.md` 既有分岔列高度重疊，合併後多筆分岔列可望直接刪除。
+3. 其餘 24 筆維持「等上游合併」，無本機證據顯示已影響維護者實際掃描結果；新編號從 PR #528、
+   issue #525 起看，不重掃本輪 31＋10 筆。
