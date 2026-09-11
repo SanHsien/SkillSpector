@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import pytest
@@ -53,9 +52,12 @@ def _rd04_oversized_payload(marker: str) -> str:
 
 
 def _allow_slow_static_fixture(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Keep oversized fixture scans deterministic on slower Windows runners."""
-    if os.name != "nt":
-        return
+    """Keep oversized fixture scans deterministic when the runner is under load.
+
+    The product budgets bound pathological input; whether these fixtures finish
+    inside them depends on machine load, on Windows cold starts and on shared
+    Linux CI runners alike, so the relaxation applies on every platform.
+    """
     seconds = 600.0
     budget_type = state_module.WorkflowResourceBudget
 

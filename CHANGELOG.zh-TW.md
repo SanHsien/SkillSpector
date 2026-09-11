@@ -10,6 +10,7 @@
 
 ### Fixed
 
+- **大型 acceptance test 在 Linux CI 間歇失敗。** `test_rd04_large_file_pair_detects_start_boundary_and_end` 在 run 34543263439 以 `analysis_completeness.is_complete is False` 失敗：負載下的 runner 讓第三個掃描介面用完每檔 30 秒額度。`_allow_slow_static_fixture` 原本只在 Windows 放寬，但 CI 跑在 ubuntu，放寬從未生效；上游 CI 也有同樣的失敗（run 34447095261、34442162097）。改為所有平台套用，只影響兩個 oversized fixture，產品預設不變；見 [`docs/DIVERGENCE.md`](docs/DIVERGENCE.md)。
 - **`75bd6f3` 合併後的兩個紅燈。** `Dependency freshness` 擋在 fork 持有的 `codeql.yml`：`github/codeql-action` 釘 v4.37.9、最新 v4.38.0，升到 v4.38.0 的 commit SHA（`b96794f`）。`ruff` 在 `tools/check_dependency_freshness.py` 報 UP035（`Callable` 應從 `collections.abc` 匯入）；它沒被 gate 抓到，因為 `tools/dev_check.ps1` 的 lint 範圍只列了兩支 tools 腳本——改成整個 `tools/`，fork 持有的維護工具都在 gate 內。
 - **依賴新鮮度的 Actions 查詢改帶 token。** 匿名 `api.github.com` 每小時 60 次、hosted runner 共用；
   超額後每一列 Action 的 `latest` 都變 `unknown`，整個 Actions 半邊靜默失聲（而那正是本 repo 現在唯一
