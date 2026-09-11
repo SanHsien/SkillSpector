@@ -10,6 +10,8 @@
 
 ### Changed
 
+- **Dependabot uv PR #1（cryptography 50.0.0）、#2（setuptools 83.0.0）不合併。** `uv.lock` 是上游持有檔、目前與上游逐位元組相同；合併會成為未登記分岔並讓 `check_divergence` 擋 gate。cryptography 的 CVE-2026-69247 在 PKCS#7 解密，本掃描器沒有這條呼叫路徑；setuptools 只用於建置。判準見 [`docs/DECISIONS.md`](docs/DECISIONS.md) 2026-09-12。
+
 - **上游 PR/issue 水位推進到 #527／#524（commit 軸不動，仍是 `69dcdfb`）。** 31 筆新 PR
   （#488–#527）、10 筆新 issue（#486–#524）逐筆讀 diff／檔案清單後判定；#493／#507／#508／
   #511 用 `git merge-base --is-ancestor` 確認已隨 2.11.1／2.11.2 同步進 `main`，其餘一律
