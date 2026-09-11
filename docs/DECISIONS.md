@@ -342,3 +342,24 @@ is worth calling out explicitly」）：
 4. **#516/#521（documentation 誤判分析限制）**：與 #515 對應，維護者若實際遇到文件掃描誤判
    可提前確認 up-to-date 進度，否則按序等待。
 5. 其餘 22 筆維持「等上游合併」，無本機證據顯示已影響維護者實際掃描結果。
+
+## 2026-09-12：Dependabot uv PR #1、#2 不合併，`uv.lock` 跟上游
+
+**決定**：本 fork 的 Dependabot PR #1（`cryptography` 49.0.0 → 50.0.0）與 #2（`setuptools`
+82.0.1 → 83.0.0）不合併；`uv.lock` 維持與上游逐位元組相同，由同步上游帶入新版。PR 暫留開啟，
+作為上游尚未跟進的訊號。
+
+**理由**：`uv.lock` 是上游持有檔，本 fork 目前與上游 `69dcdfb` 完全一致。合併任一 PR 就成為
+未登記的分岔，`tools/check_divergence.py` 會擋下 `tools/dev_check.ps1`，之後每次同步也會在
+lock 檔衝突。兩者都不是本 fork 可觸及的缺陷：
+
+- `cryptography` 50.0.0 的安全修正 CVE-2026-69247 在 `pkcs7_decrypt_der` 系列（解密不可信
+  PKCS#7 訊息時的 Bleichenbacher oracle）。lock 中依賴它的是 `langgraph-api`、`pyjwt`、
+  `secretstorage`，`src/` 沒有任何 PKCS#7 解密呼叫（唯一的 `cryptography` 字樣是
+  supply-chain analyzer 的已知漏洞名單）。
+- `setuptools` 只用於建置，不進掃描器執行路徑。
+
+**觸發條件**：uv ecosystem 的 Dependabot PR 若帶有**可觸及**的安全修正（掃描不可信 skill 的
+程式路徑確實會呼叫受影響函式），才以最小變更採用並在 `docs/DIVERGENCE.md` 登記 `uv.lock`
+一列；否則一律等上游。`.github/dependabot.yml` 保留 uv ecosystem，因為這些 PR 是看見上游
+lock 落後的唯一自動訊號。
