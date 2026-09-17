@@ -91,3 +91,10 @@ SKIP_NO_MKFIFO = "named pipes are unavailable on this platform"
 SKIP_NO_SYMLINK = "symlink creation is unavailable to this process"
 SKIP_NO_GETEUID = "os.geteuid is unavailable on this platform"
 SKIP_NO_SHEBANG_CLI = "PATH stubs written as shebang scripts are not executable here"
+
+BACKSLASH_IS_FILENAME_CHAR = "\\" not in {os.sep, os.altsep}
+"""A backslash is an ordinary file-name character. False on Windows, where it separates paths."""
+
+SKIP_BACKSLASH_IS_SEPARATOR = (
+    "a backslash separates paths on this platform, so it cannot sit inside a file name"
+)

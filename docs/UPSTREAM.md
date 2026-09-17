@@ -12,12 +12,14 @@
 引用自 `tools/upstream_baseline.json`：
 
 ```
-reviewed_through:       69dcdfb74487d361ba4c811d088cfdea2ff3a9dc
-reviewed_pr_through:    527
-reviewed_issue_through: 524
+reviewed_through:       c13f70ebf14905912c616a58c9a8cb8112ef94a4
+reviewed_pr_through:    580
+reviewed_issue_through: 574
 ```
 
-- `reviewed_through` 已於 2026-09-11 推進到 `69dcdfb`（同步上游 2.11.1／2.11.2，19 個
+- `reviewed_through` 已於 2026-09-17 推進到 `c13f70e`（同步上游 53 個 commit，版本號仍 2.11.2）。因 fork 歷史已壓平、無共同祖先，改以三方差異套用，程序見 [`../FORK.md`](../FORK.md)；逐筆判定見 [`DECISIONS.md`](DECISIONS.md) 2026-09-17 條目。
+- `reviewed_pr_through` = 580、`reviewed_issue_through` = 574：#528–#580 的 13 個已合併 PR 隨同步進來，29 個開放 PR 等上游合併；9 個 issue 對應到上述 PR。
+- （以下為 2026-09-11 當時的紀錄）`reviewed_through` 已於 2026-09-11 推進到 `69dcdfb`（同步上游 2.11.1／2.11.2，19 個
   commit），fork HEAD 對齊 `upstream/main` tip；本節上方「Group A–D」36 個舊分支的判定
   維持不變（水位機制只記軸位，不影響既有判定）。
 - `reviewed_pr_through` = 527：#488–#527 共 31 筆新增 PR（含 #493／#511 兩個 release PR）

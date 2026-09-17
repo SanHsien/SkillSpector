@@ -363,3 +363,41 @@ lock 檔衝突。兩者都不是本 fork 可觸及的缺陷：
 程式路徑確實會呼叫受影響函式），才以最小變更採用並在 `docs/DIVERGENCE.md` 登記 `uv.lock`
 一列；否則一律等上游。`.github/dependabot.yml` 保留 uv ecosystem，因為這些 PR 是看見上游
 lock 落後的唯一自動訊號。
+
+## 2026-09-17：同步上游 53 個 commit 到 `c13f70e`，採用 #522 的每檔預算
+
+**決定**：把上游 `69dcdfb..c13f70e`（53 個 commit，版本號仍 2.11.2）整批同步進 fork。
+
+**作法**：2026-09-13 本 fork 歷史壓成單一 commit，與上游沒有共同祖先，`git merge` 直接拒絕
+（`refusing to merge unrelated histories`）。改把該區間的內容差異以 `git apply -3` 三方套用；
+本 fork 內容等於 `69dcdfb` 加登記過的分岔，所以衝突只落在 7 個分岔檔，其餘 116 個檔乾淨套用。
+程序已寫進 `FORK.md`「上游同步怎麼做」。
+
+**分岔處理（照 `DIVERGENCE.md` 各列的判準）**：
+- `src/skillspector/nodes/analyzers/static_runner.py`：上游 #522 合併，新增
+  `SKILLSPECTOR_MAX_STATIC_ANALYSIS_SECONDS_PER_ARTIFACT`（預設 300 秒，只收正有限值）。
+  改取上游版本，移除本 fork 的 `SKILLSPECTOR_MAX_STATIC_SECONDS` 與其 7 個釘行為的測試。
+  **下游影響**：book-to-skill、marketingskills、agent-skills 的 gate 仍設舊變數名；它們的 pin 還指向
+  舊 commit，所以現在不受影響，但換 pin 時必須改用新名稱。若忘記改，新變數不存在會退回 300 秒，
+  掃描逾時在這些 gate 會記為不完整而失敗，不會靜默放寬。
+- `tests/nodes/analyzers/test_static_yara.py`、`tests/nodes/test_build_context.py`、
+  `tests/unit/test_input_handler.py`：上游 #501–#505、#518 以同樣手法修好 Windows 可攜性，改取
+  上游版本後在本機 Windows 實跑 301 passed、16 skipped，三列分岔刪除。
+- `tests/nodes/test_security_end_to_end.py`：先改取上游版本實測，`test_nine_case_contract_across_public_surfaces`
+  在本機 Windows 仍以 `analysis_completeness.is_complete` 失敗——#522 只解決每檔預算，YARA 載入與 SC8
+  仍寫死 5 秒。放寬 helper 重新套到上游版本上，兩個大型測試通過，這列保留並改寫觸發條件。
+- `.gitignore` 保留檔尾 fork 區塊；`README.md` 維持繁中，上游英文 README 寫進 `README.en.md`。
+- **新增兩個分岔**（上游新測試在 Windows 上的假設）：`tests/unit/test_cli.py` 的檔名含反斜線，Windows 上被當成路徑分隔符，以能力探測跳過；`tests/nodes/analyzers/test_json_container_ownership.py` 把超長 payload 當測試 id，pytest 寫進 `PYTEST_CURRENT_TEST` 時超過 Windows 環境變數上限，加上短 `ids`。兩者產品行為都正確，只是測試的平台假設。
+- **驗證**：分三批全跑——unit 1563 passed、nodes 3822 passed、其餘 182 passed，大型 e2e 檔 98 passed；`tools/check_divergence.py` 為 10 個分岔、10 列登記。
+
+**上游 PR／issue triage**：#528–#580 中 13 個已合併且 merge commit 為 `upstream/main` 祖先，隨本次
+同步進來；29 個仍開啟，依慣例等合併——其中 #550 是 2.12.0 發版，版本號一變，三個下游 repo 的精確
+fingerprint 會全部失效，屆時要逐 repo 重產。issue #534／#535／#540 已關閉，其餘 6 個對應到開啟中的
+PR（#528→#532、#538→#539、#552→#561、#554→#557、#574→#575，#531 追蹤 SC6 發版）。
+本 fork 回貢的 PR #486 已於 2026-09-15 由上游維護者 yashrajp22 關閉，#490 建立在它之上但仍開啟，
+`scripts/compare_scan_accuracy.py` 的分岔維持到 #490 合併。
+
+**下游 pin 的可及性風險**：兩個下游 repo 的 `requirements-security.txt` 釘在 `75bd6f3`。歷史壓平後，
+這個 commit 目前只能經由兩個 Dependabot 分支（`dependabot/uv/*`）取得；那兩個 PR 一關閉、分支被刪，
+全新安裝就可能拉不到。所以本次同步推送後，下游 pin 要移到 `main` 上可及的 commit，並同時改用
+上游的每檔預算變數名。在那之前，Dependabot PR #1、#2 不要關閉。

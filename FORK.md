@@ -95,7 +95,13 @@ Apache License 2.0 與完整 Git 歷史。
    NVIDIA/SkillSpector --state all` 輔助檢視。
 3. 對每一筆決定「引用」或「不引用」，理由寫進 [`docs/DECISIONS.md`](docs/DECISIONS.md)。
 4. 引用的話，`git cherry-pick` 或手動移植，保留原作者署名；跑完整驗證
-   （`pwsh -File tools\dev_check.ps1`）再推。
+   （`pwsh -File tools\dev_check.ps1`）再推。整批同步上游時**不能用 `git merge`**：
+   2026-09-13 本 fork 歷史壓成單一 commit，與上游已無共同祖先（`refusing to merge
+   unrelated histories`）。改把上次審到的 SHA 到 `upstream/main` 的內容差異以三方合併
+   套用：`git diff --binary <reviewed_through> upstream/main > sync.patch` 再
+   `git apply -3 --index sync.patch`。本 fork 內容等於 `reviewed_through` 加上
+   [`docs/DIVERGENCE.md`](docs/DIVERGENCE.md) 登記的分岔，所以衝突只會落在登記過的
+   分岔檔，照各列「跟進上游時怎麼處理」解。
 5. 每一筆都決定完之後，更新 `tools/upstream_baseline.json` 的 `reviewed_through`
    （完整 40 碼 SHA，不可用縮寫）、`reviewed_pr_through`、`reviewed_issue_through`、
    `reviewed_date`，讓水位反映實際審視到的位置——只推進部分軸會讓另一軸的報告失真。
