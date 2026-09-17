@@ -268,12 +268,12 @@ def test_secure_open_traverses_search_only_ancestors(tmp_path: Path) -> None:
     parent.mkdir()
     source = parent / "SKILL.md"
     source.write_text("# Skill", encoding="utf-8")
-    os.chmod(parent, 0o111)
+    os.chmod(parent, 0o100)
     try:
         with _open_regular_file_no_follow(source) as opened:
             assert opened.read() == b"# Skill"
     finally:
-        os.chmod(parent, 0o755)
+        os.chmod(parent, 0o700)
 
 
 def test_resolve_file_rejects_platform_without_safe_open_support(

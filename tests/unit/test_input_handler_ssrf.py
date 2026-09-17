@@ -213,12 +213,10 @@ class TestAllowlistConfiguration:
     """Allowlists contain expected hosts."""
 
     def test_git_hosts_include_major_forges(self) -> None:
-        assert "github.com" in ALLOWED_GIT_HOSTS
-        assert "gitlab.com" in ALLOWED_GIT_HOSTS
-        assert "bitbucket.org" in ALLOWED_GIT_HOSTS
+        assert {"github.com", "gitlab.com", "bitbucket.org"}.issubset(ALLOWED_GIT_HOSTS)
 
     def test_download_hosts_include_raw_github(self) -> None:
-        assert "raw.githubusercontent.com" in ALLOWED_DOWNLOAD_HOSTS
+        assert {"raw.githubusercontent.com"}.issubset(ALLOWED_DOWNLOAD_HOSTS)
 
     def test_download_hosts_include_huggingface(self) -> None:
-        assert "huggingface.co" in ALLOWED_DOWNLOAD_HOSTS
+        assert {"huggingface.co"}.issubset(ALLOWED_DOWNLOAD_HOSTS)
