@@ -859,6 +859,10 @@ for finding in result["filtered_findings"]:
     print(f"[{finding['severity']}] {finding['rule_id']}: {finding['message']}")
 ```
 
+## Multi-agent pipeline
+
+This repo is part of the [agent-relay](https://github.com/SanHsien/agent-relay) multi-agent dispatch and verification pipeline (role: skill supply-chain scanning). Integration with agent-relay is planned (Phase 3). The protocol spec and the index of all related repos live in agent-relay.
+
 ## License
 
 Apache License 2.0 - see [LICENSE](LICENSE) for details.

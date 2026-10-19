@@ -90,6 +90,10 @@ symlink 相關的測試會自動恢復執行。
 
 相鄰但不同層：[agent-governance-toolkit](https://github.com/SanHsien/agent-governance-toolkit) 治理的是上線後自主運行的 agent——政策強制、零信任身分、沙箱執行與可稽核記錄——不是寫程式的 coding agent。[opencodex](https://github.com/SanHsien/opencodex) 是供應商代理，決定這些 agent 背後能跑哪些 LLM，本身不約束 agent 行為。
 
+## 多 Agent 流水線
+
+本 repo 是 [agent-relay](https://github.com/SanHsien/agent-relay) 多 Agent 派工與驗收流水線的一環（角色：技能供應鏈掃描）。與 agent-relay 的整合規劃中（Phase 3）。協定規格與所有相關 repo 的總目錄見 agent-relay。
+
 ## 授權
 
 原始著作權 2026 NVIDIA CORPORATION & AFFILIATES，以 [Apache License 2.0](./LICENSE) 授權；
