@@ -8,6 +8,10 @@
 
 ## [Unreleased]
 
+### Security
+
+- **`uv.lock` 的 `mcp` 升到 1.30.0。** Dependabot alert #32（中風險）：MCP Python SDK 的 StreamableHTTP transport 會無上限累積 session，可被用來耗盡資源。本 fork 的 `skillspector mcp` server 走的就是這個 transport。升版落在既有 direct pin `mcp>=1.29.0,<2.0.0` 內，鎖定檔差異只有版本號與兩個雜湊。見 [`docs/DECISIONS.md`](docs/DECISIONS.md) 2026-10-24。
+
 ### Changed
 
 - **同步上游 53 個 commit 到 `c13f70e`（版本號仍 2.11.2）。** fork 歷史壓平後與上游無共同祖先，改以 `git apply -3` 套用區間差異，衝突只在登記過的分岔檔。採用上游 #522 的 `SKILLSPECTOR_MAX_STATIC_ANALYSIS_SECONDS_PER_ARTIFACT`（預設 300 秒），移除本 fork 的 `SKILLSPECTOR_MAX_STATIC_SECONDS`；下游 gate 換 pin 時要改用新變數名。上游 #501–#505、#518 涵蓋了三個 Windows 測試分岔，已刪列；大型 e2e 的放寬在 Windows 仍需要，保留。見 [`docs/DECISIONS.md`](docs/DECISIONS.md) 2026-09-17。

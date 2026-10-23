@@ -401,3 +401,21 @@ PR（#528→#532、#538→#539、#552→#561、#554→#557、#574→#575，#531 
 這個 commit 目前只能經由兩個 Dependabot 分支（`dependabot/uv/*`）取得；那兩個 PR 一關閉、分支被刪，
 全新安裝就可能拉不到。所以本次同步推送後，下游 pin 要移到 `main` 上可及的 commit，並同時改用
 上游的每檔預算變數名。在那之前，Dependabot PR #1、#2 不要關閉。
+
+## 2026-10-24：`uv.lock` 的 `mcp` 升到 1.30.0（Dependabot alert #32）
+
+**決定**：把 `uv.lock` 鎖定的 `mcp` 從 1.29.0 升到 1.30.0，`docs/DIVERGENCE.md` 的 `uv.lock`
+一列併入這筆原因；`pyproject.toml` 的 direct pin（`mcp>=1.29.0,<2.0.0`）不動。
+
+**理由**：Dependabot alert #32（中風險）指出 MCP Python SDK 的 StreamableHTTP transport 會
+無上限累積 session，可被用來耗盡資源，修復版是 1.30.0。本 fork 的 `src/skillspector/mcp_server.py`
+就是 `skillspector mcp` 子命令的 server 實作，走的正是這個 transport，不是只在測試裡用得到的
+依賴。升版落在既有 direct pin 邊界內，`uv lock --upgrade-package mcp` 的差異只有版本號與兩個
+雜湊，沒有連帶升級其他套件。
+
+**驗證**：`tests/unit/test_mcp_server.py`、`tests/unit/test_mcp_registry.py` 與三個 MCP 分析器
+測試檔以 1.30.0 實跑 206 passed；`tools/check_divergence.py` 報 13 個分岔、13 列登記；
+完整 gate（`tools/dev_check.ps1`）綠燈。
+
+**限制**：`uv.lock` 是上游持有檔，這列分岔的解除條件不變——上游自己把 `mcp` 升到含修復的版本
+之後，直接同步覆蓋即可。
