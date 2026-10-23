@@ -419,3 +419,36 @@ PR（#528→#532、#538→#539、#552→#561、#554→#557、#574→#575，#531 
 
 **限制**：`uv.lock` 是上游持有檔，這列分岔的解除條件不變——上游自己把 `mcp` 升到含修復的版本
 之後，直接同步覆蓋即可。
+
+## 2026-10-24：同步上游到 `d7338f5`（2.12.0；PR #902、issue #901）
+
+**決定**：把上游 `c13f70e..d7338f5`（171 個 first-parent 合併、286 個檔案）以 `git diff --binary | git apply -3 --index` 套進本 fork，版本號隨上游變成 2.12.0。fork 歷史在 2026-09-27 又壓平過一次，與上游仍無共同祖先，所以照 `FORK.md` 的程序走，不用 `git merge`。
+
+**分岔處理（照 `DIVERGENCE.md` 各列判準）**：
+
+- `README.md`：繁中主檔不動；`README.en.md` 以上游現行 README 重建，只加頂部語言列。
+- `tests/unit/test_cli.py`：上游在 fork 的 `skipif` 裝飾器上方插入新測試，衝突。保留上游全部新測試，把 `BACKSLASH_IS_FILENAME_CHAR` 的 `skipif` 放回原本修飾的 `test_discovered_files_tree_renders_untrusted_names_literally`。
+- `tests/nodes/test_security_end_to_end.py`：**分岔解除**。上游改用 `scaled_large_file_bounds` fixture 縮小視窗與檔案上限，正是這列登記的解除條件「縮短 fixture 成本」。改取上游版本後在本機 Windows 跑整個檔案 152 passed，刪除該列，「已知問題」表同步標為已解決。
+- `uv.lock`：上游仍鎖 `cryptography 49.0.0`、`setuptools 82.0.1`、`mcp 1.29.0`，本 fork 的安全版本（50.0.1／84.0.0／1.30.0）保留；`uv lock --check` 通過，上游新增的 `google-auth[requests]` 依賴已在鎖定檔內。
+- `tools/check_divergence.py`：12 個分岔、12 列登記。
+
+**Windows 測試（2.12.0 新增的上游測試）**：第一次完整跑是 14989 過、269 失敗、10 錯誤，全部是測試的平台假設，產品本身沒有回歸。處理方式依「能力探測、不硬判平台」的既有原則：
+
+- **2.12.0 起產品在 Windows 拒絕 `--output` 寫檔**（約 250 筆）。`file_output._SECURE_OUTPUT_SUPPORTED` 要求 `O_NOFOLLOW`、`O_DIRECTORY` 與 `dir_fd`，防止攻擊者把輸出路徑換成 symlink；Windows 沒有這些，產品直接拒絕並請使用者改用 stdout 導向。這是上游的安全設計，fork 不自行改寫寫檔邏輯。新增 fork 自有 plugin `tests/fork_platform_skips.py`（由 `tools/dev_check.ps1` 以 `-p` 載入，不動任何上游檔案）：每個測試期間包住所有已載入模組對 `require_secure_file_output` 的引用，只有「測試失敗、而且該測試期間產品確實拋出了那個拒絕」才改判跳過；子行程測試看不到呼叫，退回比對產品的固定拒絕訊息。平台支援安全寫檔時 plugin 完全不介入。
+- **建 symlink 權限不足**（WinError 1314）：同一個 plugin 依 `SYMLINKS_SUPPORTED` 探測與例外本身（`OSError.winerror == 1314` 且 traceback 經過 `symlink_to`）改判跳過。
+- **`PYTEST_CURRENT_TEST` 超過 32,767 字元**（10 個錯誤）：上游把整段 payload 當參數化 id。plugin 只在值會超過上限時截短這個僅供觀察的環境變數；先前在 `test_json_container_ownership.py` 用短 `ids` 的分岔可在之後評估改由此處涵蓋。
+- **中文 Windows 用 cp950 解碼子行程輸出**：gate 的 pytest 步驟設 `PYTHONUTF8=1`。
+- **四個上游測試檔的平台假設**改寫並登記分岔：`test_cli.py`（file URL 轉路徑改用 `url2pathname`）、`test_input_handler.py`（環境變數不分大小寫）、`test_input_handler_bounds.py`（`rmtree` 走訪方式）、`test_python_ast.py`（執行權限位元）。新增探測 `SECURE_FILE_OUTPUT`、`EXEC_BITS_ENFORCED`、`RMTREE_USES_FD`、`ENV_KEYS_CASE_SENSITIVE`。
+- **`git apply` 寫出 CRLF 工作樹**：套用時依本機 `core.autocrlf` 寫檔，違反 repo 的 `eol=lf`，150 個檔案工作樹變成 CRLF（index 正確）。`oms` 測試因此比對失敗；已刪除後重新 checkout 為 LF。之後用 `git apply` 同步時要檢查 `git ls-files --eol` 的 `w/crlf`。
+
+結果：`tools/dev_check.ps1` 15001 passed、0 failed、427 skipped（同步前約 165）、4 xfailed。
+
+**PyPI 冒充套件**：2.12.0 的 SC4 以套件名稱查 OSV，查到 `MAL-2026-6561`——PyPI 上一個自稱 NVIDIA/skillspector 轉發版、夾帶預設開啟遙測（回傳 `livekit-agents.xyz`）的惡意套件，受影響 0.0.1–2.3.10，已下架。本 fork 與下游一律以 git URL 釘精確 commit，不經 PyPI；README 已加警示。
+
+**下游 gate 連帶修改**：agent-skills 的自我掃描原本用 `skillspector scan --output`，改為 stdout 導向（PowerShell 7.4+ 原樣保留原生指令輸出位元組，gate 會檢查版本）。book-to-skill 與 agent-marketing-skills 的檢查器同步 2.12.0 的兩個契約變更：參照原因碼拆成 `reference_missing`／`reference_unresolved`、二進位排除不再計為 failed。
+
+**下游影響**：掃描器版本從 2.11.2 變成 2.12.0，exact fingerprint 綁掃描器版本，book-to-skill、agent-marketing-skills、agent-skills 三個下游的 fingerprint 會全部失效，要逐 repo 重產並換 pin，見各 repo 同日決策。
+
+**PR／issue 軸**：#581–#902 中 132 筆已合併、隨本次同步進來；11 筆 closed；63 筆 open 等合併。其中 #617、#636 是 Windows 相容修正，與本 fork 既有的 Windows 分岔高度重疊，合併後有機會再刪列。本 fork 回貢的 #486 已關閉，接手的 #490 仍未合併，`scripts/compare_scan_accuracy.py` 那列保留。issue #575–#901 共 111 筆（58 closed、53 open），沒有需要本 fork 單獨處置的。
+
+**Actions 恢復**：本 repo 自 2026-10-19 起所有 workflow 卡在 queued，API 回 `Actions has been disabled for this repository`，但 `actions/permissions` 顯示已啟用。根因是 GitHub 對 fork 的工作流程保護，需擁有者在 Actions 分頁按啟用；維護者於 2026-10-24 點了之後恢復。停用期間建立的 7 個 Dependabot 動態 run 仍取消不了，不影響之後的推送。

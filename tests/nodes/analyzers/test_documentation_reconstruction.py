@@ -35,7 +35,12 @@ def successful_llm_transport(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         def invoke_with_usage(self, _prompt, collector):
             calls.append(self.schema.__name__)
             collector.mark_response_received()
-            return self.schema.model_validate({"findings": []})
+            payload = (
+                {"is_mismatch": False}
+                if "is_mismatch" in self.schema.model_fields
+                else {"findings": []}
+            )
+            return self.schema.model_validate(payload)
 
         async def ainvoke_with_usage(self, prompt, collector):
             return self.invoke_with_usage(prompt, collector)
@@ -49,7 +54,7 @@ def successful_llm_transport(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     monkeypatch.setattr("skillspector.mcp_server.is_llm_available", lambda: (True, ""))
     graph_module = importlib.import_module("skillspector.graph")
     monkeypatch.setattr(graph_module, "is_llm_available", lambda: (True, ""))
-    monkeypatch.setattr("skillspector.nodes.report.is_llm_available", lambda: (True, ""))
+    monkeypatch.setattr("skillspector.nodes.report.is_llm_available", lambda **_: (True, ""))
     scan_graph = graph_module.create_graph()
     monkeypatch.setattr("skillspector.cli.graph", scan_graph)
     monkeypatch.setattr("skillspector.mcp_server.graph", scan_graph)

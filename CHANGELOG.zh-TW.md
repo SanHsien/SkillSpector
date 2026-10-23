@@ -14,6 +14,8 @@
 
 ### Changed
 
+- **同步上游到 `d7338f5`，版本號變成 2.12.0。** 171 個合併、286 個檔案，以 `git apply -3` 套用。`tests/nodes/test_security_end_to_end.py` 的分岔解除：上游改用縮小上限的 fixture，Windows 實跑 152 passed。`test_cli.py` 的反斜線 `skipif` 保留，`uv.lock` 的安全版本保留。三個下游的 fingerprint 因掃描器版本變動需全部重產。見 [`docs/DECISIONS.md`](docs/DECISIONS.md) 2026-10-24。
+
 - **同步上游 53 個 commit 到 `c13f70e`（版本號仍 2.11.2）。** fork 歷史壓平後與上游無共同祖先，改以 `git apply -3` 套用區間差異，衝突只在登記過的分岔檔。採用上游 #522 的 `SKILLSPECTOR_MAX_STATIC_ANALYSIS_SECONDS_PER_ARTIFACT`（預設 300 秒），移除本 fork 的 `SKILLSPECTOR_MAX_STATIC_SECONDS`；下游 gate 換 pin 時要改用新變數名。上游 #501–#505、#518 涵蓋了三個 Windows 測試分岔，已刪列；大型 e2e 的放寬在 Windows 仍需要，保留。見 [`docs/DECISIONS.md`](docs/DECISIONS.md) 2026-09-17。
 
 - **Dependabot uv PR #1（cryptography 50.0.0）、#2（setuptools 83.0.0）不合併。** `uv.lock` 是上游持有檔、目前與上游逐位元組相同；合併會成為未登記分岔並讓 `check_divergence` 擋 gate。cryptography 的 CVE-2026-69247 在 PKCS#7 解密，本掃描器沒有這條呼叫路徑；setuptools 只用於建置。判準見 [`docs/DECISIONS.md`](docs/DECISIONS.md) 2026-09-12。

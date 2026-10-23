@@ -98,3 +98,58 @@ BACKSLASH_IS_FILENAME_CHAR = "\\" not in {os.sep, os.altsep}
 SKIP_BACKSLASH_IS_SEPARATOR = (
     "a backslash separates paths on this platform, so it cannot sit inside a file name"
 )
+
+
+def _probe_secure_file_output() -> bool:
+    """Return whether the product's symlink-safe report writer is available here."""
+    from skillspector import file_output
+
+    return bool(file_output._SECURE_OUTPUT_SUPPORTED)
+
+
+SECURE_FILE_OUTPUT = _probe_secure_file_output()
+"""The product writes report files only where ``O_NOFOLLOW`` and ``dir_fd`` exist.
+
+On other platforms (Windows) ``--output`` is refused by design and the user is told to
+redirect stdout, so tests that exercise file output cannot run there.
+"""
+SKIP_NO_SECURE_FILE_OUTPUT = (
+    "the product refuses report file output on this platform (no O_NOFOLLOW/dir_fd)"
+)
+SECURE_FILE_OUTPUT_REFUSAL = "Safe file output is unsupported on this platform"
+"""The exact refusal the product raises; tests failing only with it are untestable here."""
+
+
+def _probe_exec_bits() -> bool:
+    """Return whether clearing the execute bits makes ``os.access(X_OK)`` false."""
+    try:
+        with tempfile.TemporaryDirectory() as raw:
+            target = Path(raw) / "probe"
+            target.write_text("", encoding="utf-8")
+            target.chmod(0o644)
+            return not os.access(target, os.X_OK)
+    except OSError:
+        return False
+
+
+EXEC_BITS_ENFORCED = _probe_exec_bits()
+"""POSIX execute permission is honoured. Windows reports every existing file as executable."""
+SKIP_NO_EXEC_BITS = "execute permission bits are not enforced on this platform"
+
+RMTREE_USES_FD = bool(getattr(__import__("shutil").rmtree, "avoids_symlink_attacks", False))
+"""``shutil.rmtree`` walks with directory file descriptors (POSIX); Windows uses a path walk."""
+SKIP_NO_FD_RMTREE = "shutil.rmtree does not use the fd-based walk on this platform"
+
+
+def _probe_env_case_sensitive() -> bool:
+    """Return whether environment variable names differ by case."""
+    key = "SKILLSPECTOR_CASE_PROBE"
+    os.environ[key] = "upper"
+    try:
+        return os.environ.get(key.lower()) != "upper"
+    finally:
+        os.environ.pop(key, None)
+
+
+ENV_KEYS_CASE_SENSITIVE = _probe_env_case_sensitive()
+"""POSIX keeps ``HTTPS_PROXY`` and ``https_proxy`` apart; Windows folds them into one."""

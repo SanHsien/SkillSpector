@@ -74,12 +74,17 @@ YARA 簽章 + OSV.dev 即時 CVE 查詢），Stage 2 可選的 LLM 語意分析�
   `UV_PROJECT_ENVIRONMENT='C:\tmp\skillspector-fork-venv' UV_LINK_MODE=copy uv run --python 3.13 pytest -m "not integration and not provider" tests/ -q`。
   套件半殘時用 `uv sync --all-extras --reinstall-package <名稱>` 修。在這個環境以外跑出的紅燈
   可能是環境造成的，不能直接當成回歸證據。
-- **Windows 全綠是完成判準**：本機 Windows 執行
-  `uv run pytest -m "not integration and not provider" tests/` 目前為
-  **4009 passed / 0 failed / 39 skipped / 38 deselected / 4 xfailed**（2026-09-11，上游 2.11.2）。原本的 23 筆紅燈已全部處理，逐筆判準登記於
-  [`docs/DIVERGENCE.md`](docs/DIVERGENCE.md)。**不要接受任何新的紅燈**：出現紅燈就是回歸，
-  不是「已知的 Windows 落差」。跳過的 39 筆全部由 `tests/platform_support.py` 的能力探測
-  決定（symlink／FIFO／`os.geteuid`／PATH 上的 shebang 腳本），不是 `sys.platform` 硬判。
+- **Windows 全綠是完成判準**：本機 Windows 執行 `tools/dev_check.ps1`（內部是
+  `uv run python -m pytest -p tests.fork_platform_skips -m "not integration and not provider" tests/`，
+  並設 `PYTHONUTF8=1`）目前為
+  **15001 passed / 0 failed / 427 skipped / 250 deselected / 4 xfailed**（2026-10-24，上游 2.12.0）。
+  逐筆判準登記於 [`docs/DIVERGENCE.md`](docs/DIVERGENCE.md)。**不要接受任何新的紅燈**：出現紅燈就是回歸，
+  不是「已知的 Windows 落差」。跳過全部由執行期能力探測決定，不是 `sys.platform` 硬判：
+  `tests/platform_support.py` 的探測（symlink／FIFO／`os.geteuid`／shebang 腳本／執行權限位元／
+  fd 式 `rmtree`），以及 fork 自有 plugin `tests/fork_platform_skips.py`——2.12.0 起產品在沒有
+  `O_NOFOLLOW`／`dir_fd` 的平台拒絕 `--output` 寫檔，plugin 只把「該測試期間產品確實拋出那個拒絕」
+  與「建 symlink 被拒（WinError 1314）」的失敗改判為跳過，其他失敗照舊是紅燈。不經 gate、直接跑
+  裸 `pytest` 會看到這兩類失敗，那不是回歸。
 - **產品內容以上游為準**：`src/skillspector/`、`tests/`、`skills/`、`contrib/`、
   `extensions/`、`docs/{ANALYSIS_RESOURCE_BOUNDS,DEVELOPMENT,SUPPRESSION,...}.md`、
   `Makefile`、`pyproject.toml`、`uv.lock`、`LICENSE`、`SECURITY.md`、`CONTRIBUTING.md`、

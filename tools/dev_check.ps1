@@ -62,6 +62,21 @@ if ($Quick) {
 
 # `integration` and `provider` tests may call live LLM endpoints and need credentials;
 # they are excluded here the same way pyproject.toml's default `addopts` excludes them.
-Invoke-Step -Label "Pytest" -Exe "uv" -Arguments @("run", "pytest", "-m", "not integration and not provider", "tests/", "-q")
+# `-p tests.fork_platform_skips` reports tests the product cannot run on this platform
+# (report file output refused since 2.12.0, symlinks without the privilege) as skipped;
+# see that module. PYTHONUTF8 makes `subprocess(..., text=True)` in upstream tests decode
+# the CLI's UTF-8 output as UTF-8 instead of the console code page (cp950 here).
+$previousPythonUtf8 = $env:PYTHONUTF8
+$env:PYTHONUTF8 = "1"
+try {
+    # `python -m pytest` puts the repo root on sys.path before plugins load, so the
+    # fork plugin under tests/ imports; the bare `pytest` entry point does not.
+    Invoke-Step -Label "Pytest" -Exe "uv" -Arguments @(
+        "run", "python", "-m", "pytest", "-p", "tests.fork_platform_skips",
+        "-m", "not integration and not provider", "tests/", "-q"
+    )
+} finally {
+    $env:PYTHONUTF8 = $previousPythonUtf8
+}
 
 Write-Host "WINDOWS DEV CHECK GREEN"

@@ -13,12 +13,16 @@ from collections import deque
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
+import regex  # type: ignore[import-untyped]
+
 from skillspector.artifacts import (
     ContentKind,
     SecurityTextView,
     _concealed_instruction_run_spans,
     _contextual_default_ignorable_boundary_spans,
     _obfuscated_instruction_matches,
+    binary_instruction_view,
+    multiline_prompt_injection_view,
     prompt_injection_letter_spacing_view,
 )
 from skillspector.inspection_ledger import (
@@ -93,6 +97,18 @@ _MAX_IRREGULAR_SPACING_FRAGMENT_GAP = 2
 _IDENTIFIER_RELAXATION = str.maketrans({"_": " ", **{str(value): " " for value in range(10)}})
 _PROJECTED_PROMPT_PATTERNS = tuple(
     pattern for pattern, _confidence in (*COMPILED_P3_PATTERNS, *COMPILED_P4_PATTERNS)
+)
+# Removing line breaks can give the existing wildcard patterns a much longer
+# search space. Interrupt the regex itself, not just work between matches.
+_MULTILINE_PROMPT_PATTERN_SECONDS = 0.25
+_MULTILINE_PROMPT_PATTERNS = tuple(
+    regex.compile(pattern.pattern, regex.ASCII | regex.IGNORECASE | regex.MULTILINE)
+    for pattern in _PROJECTED_PROMPT_PATTERNS
+)
+_PROMPT_ASCII_CASE_ALIASES = {"\u0130": "i", "\u0131": "i", "\u017f": "s", "\u212a": "k"}
+_PROMPT_EXTRA_ASCII_WHITESPACE = "\x1c\x1d\x1e\x1f"
+_PROMPT_ASCII_WHITESPACE_TRANSLATION = str.maketrans(
+    dict.fromkeys(_PROMPT_EXTRA_ASCII_WHITESPACE, " ")
 )
 _LETTER_SPACING_PROMPT_ACTIONS = (
     "disclose",
@@ -650,7 +666,7 @@ def _projected_prompt_injection_line(
         preserve_identifier_boundaries=False,
     )
     if view.source_offsets is None:
-        return None
+        return _multiline_prompt_injection_line(content, budget)
     first_offset: int | None = None
     identifier_relaxed_text = view.text.translate(_IDENTIFIER_RELAXATION)
     projected_texts = (
@@ -695,6 +711,98 @@ def _projected_prompt_injection_line(
                     source_offset = join_points[point_index][1]
                     if first_offset is None or source_offset < first_offset:
                         first_offset = source_offset
+    if first_offset is not None:
+        return get_line_number(content, first_offset)
+    return _multiline_prompt_injection_line(content, budget)
+
+
+def _multiline_prompt_matching_text(text: str, budget: _ArtifactIntegrityBudget) -> str:
+    """Preserve Python ``re`` semantics in the timeout engine's ASCII alphabet.
+
+    Current P3/P4 grammar has ASCII literals, word/space classes and wildcards;
+    neither ``0`` nor ``~`` is a literal. Keep one character per source character:
+    Python's word members become ``0``, whitespace becomes a space, and other
+    non-ASCII characters become ``~``. The four Unicode aliases of ASCII letters
+    under Python IGNORECASE retain their corresponding letters. Literal newlines
+    stay unchanged, so wildcard boundaries and every match offset are preserved.
+    This is only a matching alphabet, never a replacement source/evidence view.
+    """
+    budget.check_runtime()
+    if text.isascii():
+        if not any(character in text for character in _PROMPT_EXTRA_ASCII_WHITESPACE):
+            return text
+        return text.translate(_PROMPT_ASCII_WHITESPACE_TRANSLATION)
+
+    parts: list[str] = []
+    for start in range(0, len(text), _RUNTIME_CHECK_INTERVAL_CHARS):
+        budget.check_runtime()
+        characters: list[str] = []
+        for character in text[start : start + _RUNTIME_CHECK_INTERVAL_CHARS]:
+            if character in _PROMPT_EXTRA_ASCII_WHITESPACE:
+                characters.append(" ")
+            elif character.isascii():
+                characters.append(character)
+            elif character in _PROMPT_ASCII_CASE_ALIASES:
+                characters.append(_PROMPT_ASCII_CASE_ALIASES[character])
+            elif character.isspace():
+                characters.append(" ")
+            else:
+                characters.append("0" if character.isalnum() else "~")
+        parts.append("".join(characters))
+    return "".join(parts)
+
+
+def _multiline_prompt_injection_line(
+    content: str,
+    budget: _ArtifactIntegrityBudget,
+) -> int | None:
+    """Fail closed for prompt-shaped singleton lines without flattening prose."""
+    view = multiline_prompt_injection_view(content, budget.check_runtime)
+    if view.source_offsets is None:
+        return None
+    matching_text = _multiline_prompt_matching_text(view.text, budget)
+    first_offset: int | None = None
+    for pattern in _MULTILINE_PROMPT_PATTERNS:
+        budget.check_runtime()
+        remaining = transitive_remaining_seconds(budget.state)
+        timeout = _MULTILINE_PROMPT_PATTERN_SECONDS
+        if remaining is not None:
+            timeout = min(timeout, max(0.0, remaining))
+        started_at = time.monotonic()
+        reconstruction_index = 0
+        try:
+            # Keep this short, interruptible search on the current thread.
+            # Releasing the GIL lets another analyzer consume its wall-clock
+            # allowance and turn ordinary prose into a false timeout.
+            for match in pattern.finditer(matching_text, timeout=timeout, concurrent=False):
+                budget.check_runtime()
+                # Matches and reconstruction spans are both ordered. Advance
+                # once per span, including ordinary matches before a spaced
+                # instruction, instead of rescanning all provenance per match.
+                while (
+                    reconstruction_index < len(view.reconstructions)
+                    and view.reconstructions[reconstruction_index].derived_end <= match.start() + 1
+                ):
+                    budget.check_runtime()
+                    reconstruction_index += 1
+                if reconstruction_index == len(view.reconstructions):
+                    break
+                reconstruction = view.reconstructions[reconstruction_index]
+                right = max(match.start() + 1, reconstruction.derived_start + 1)
+                if right < min(match.end(), reconstruction.derived_end):
+                    source_offset = view.source_offset(right - 1) + 1
+                    if first_offset is None or source_offset < first_offset:
+                        first_offset = source_offset
+                    # Later matches cannot precede this pattern's first gap.
+                    break
+        except TimeoutError as exc:
+            raise _ArtifactIntegrityResourceLimitError(
+                LedgerReason.RUNTIME_LIMIT,
+                {
+                    "observed_seconds": max(0.0, time.monotonic() - started_at),
+                    "limit_seconds": timeout,
+                },
+            ) from exc
     return get_line_number(content, first_offset) if first_offset is not None else None
 
 
@@ -947,14 +1055,36 @@ def node(state: SkillspectorState) -> AnalyzerNodeResponse:
                             confidence=1.0,
                         )
                     )
-                if artifact.get("content_kind") not in {
+                if artifact.get("readable_binary") or artifact.get("content_kind") not in {
                     ContentKind.BINARY,
                     ContentKind.OPAQUE,
                 }:
-                    format_density, mixed_script, first_nul_line, first_obfuscation_line = (
-                        _text_signals(content, budget)
-                    )
-                    if artifact.get("contains_nul") and first_nul_line is not None:
+                    signal_content = content
+                    binary_view = None
+                    if artifact.get("readable_binary"):
+                        binary_view = binary_instruction_view(content)[0]
+                        signal_content = binary_view.text
+                    (
+                        format_density,
+                        mixed_script,
+                        first_nul_line,
+                        first_obfuscation_line,
+                    ) = _text_signals(signal_content, budget)
+                    if first_obfuscation_line is not None and binary_view is not None:
+                        projected_start = sum(
+                            len(line)
+                            for line in signal_content.splitlines(keepends=True)[
+                                : first_obfuscation_line - 1
+                            ]
+                        )
+                        first_obfuscation_line = get_line_number(
+                            content, binary_view.source_offset(projected_start)
+                        )
+                    if (
+                        artifact.get("contains_nul")
+                        and not artifact.get("readable_binary")
+                        and first_nul_line is not None
+                    ):
                         budget.emit(
                             _finding(
                                 "AE3",
@@ -965,7 +1095,10 @@ def node(state: SkillspectorState) -> AnalyzerNodeResponse:
                                 line=first_nul_line,
                             )
                         )
-                    if format_density >= 0.01 or mixed_script:
+                    # Compressed binary bytes can resemble mixed-script Unicode text.
+                    if not artifact.get("readable_binary") and (
+                        format_density >= 0.01 or mixed_script
+                    ):
                         budget.emit(
                             _finding(
                                 "AE4",

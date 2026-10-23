@@ -69,12 +69,15 @@ pwsh -File tools\dev_check.ps1 -Quick   # ruff check + ruff format --check + --v
 pwsh -File tools\dev_check.ps1          # 上面再加 pytest（排除 integration／provider 兩個 marker）
 ```
 
-本機 Windows 已實測 `uv run pytest -m "not integration and not provider" tests/`：
-**3953 passed / 0 failed / 39 skipped**。上游原始碼在 Windows 上有 23 筆測試紅燈（全部是
-測試對 POSIX 的假設，不是產品行為錯誤），本 fork 已逐筆處理，判準與方式見
-[`docs/DIVERGENCE.md`](docs/DIVERGENCE.md)。跳過的 39 筆是執行期能力探測的結果
-（symlink、FIFO、`os.geteuid`、PATH 上的 shebang 腳本），開啟 Windows 開發人員模式後
-symlink 相關的測試會自動恢復執行。
+本機 Windows 已實測 `tools/dev_check.ps1`（上游 2.12.0）：
+**15001 passed / 0 failed / 427 skipped**。上游測試對 POSIX 的假設在 Windows 上造成的紅燈，
+本 fork 已逐筆處理，判準與方式見 [`docs/DIVERGENCE.md`](docs/DIVERGENCE.md)。跳過的測試都是
+執行期能力探測的結果：symlink、FIFO、`os.geteuid`、shebang 腳本、執行權限位元，以及 2.12.0 起
+產品在 Windows 上刻意拒絕 `--output` 寫檔（沒有 `O_NOFOLLOW`／`dir_fd`，請改用 stdout 導向）。
+開啟 Windows 開發人員模式後 symlink 相關的測試會自動恢復執行。
+
+> **不要從 PyPI 安裝 `skillspector`。** PyPI 上曾有冒充 NVIDIA 版本、夾帶預設開啟遙測的惡意套件
+> （OSV `MAL-2026-6561`，0.0.1–2.3.10，已下架）。本 fork 一律以 git URL 釘精確 commit 安裝。
 
 ## 相關工具
 
