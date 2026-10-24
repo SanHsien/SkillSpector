@@ -10,6 +10,7 @@
 
 ### Security
 
+- **`uv.lock` 的 `setuptools` 升到 84.2.1。** 處理 Dependabot PR #11：84.0.0 有 GHSA-xmj3-9gf7-h52w（舊式 wheel 安裝時經 `namespace_packages.txt` 在 Windows 上路徑逃逸），84.1.0 起修復；經 grpcio-tools 進入 dev extra。
 - **`uv.lock` 的 `filelock` 升到 4.2.4、`virtualenv` 升到 21.14.5。** 處理 Dependabot PR #10：filelock 3.29.4 有三筆 Windows 相關 GHSA（SoftFileLock 被 oplock 卡住、ReadWriteLock 的 SQLite 側檔可被其他本機使用者操作），只在 4.2.1 起修復；它經 poetry → virtualenv 進入 dev extra，正是本線的 Windows 開發環境。PR 分支建在 2.12.0 同步之前，改在本機以 `uv lock --upgrade-package` 重做。
 - **`uv.lock` 的 `mcp` 升到 1.30.0。** Dependabot alert #32（中風險）：MCP Python SDK 的 StreamableHTTP transport 會無上限累積 session，可被用來耗盡資源。本 fork 的 `skillspector mcp` server 走的就是這個 transport。升版落在既有 direct pin `mcp>=1.29.0,<2.0.0` 內，鎖定檔差異只有版本號與兩個雜湊。見 [`docs/DECISIONS.md`](docs/DECISIONS.md) 2026-10-24。
 
