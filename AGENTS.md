@@ -1,8 +1,8 @@
 # AGENTS.md
 
 本檔是所有 AI coding agent（Claude Code、Cursor、Copilot 等）在 `SanHsien/SkillSpector` 這個
-fork 工作時的**單一真相源**。`CLAUDE.md` 只放一段指回本檔的薄指標，不重複這裡的規則；上游
-`NVIDIA/SkillSpector` 沒有 `AGENTS.md` 或 `CLAUDE.md`，兩者都是這條維護線自己建立的。
+fork 工作時的**單一真相源**。本 fork 只維護本檔，不另放 `CLAUDE.md`（Claude Code 在專案沒有
+`CLAUDE.md` 時直接讀 `AGENTS.md`）；上游 `NVIDIA/SkillSpector` 沒有 `AGENTS.md`，本檔是這條維護線自己建立的。
 
 ## 這個 repo 是什麼
 

@@ -22,7 +22,6 @@ Apache License 2.0 與完整 Git 歷史。
 | 項目 | 說明 |
 |---|---|
 | `README.md` | 繁中主檔；英文原文在 `README.en.md`（`git mv` 保留，只加了一行語言列） |
-| `CLAUDE.md` | 新增：薄指標檔，指向 `AGENTS.md` 為單一真相源。上游沒有這個檔案 |
 | `AGENTS.md` | 新增：AI agent 的單一真相源，含專案速覽與本 fork 的維護規則。上游沒有這個檔案 |
 | `NOTICE.md` | 新增：來源、Apache-2.0 授權說明；`THIRD_PARTY_NOTICES.md` 是上游既有的第三方套件授權清單，本檔不取代它，只互相指路 |
 | `CHANGELOG.zh-TW.md` | 新增：只記本 fork 自己的維護歷史；上游既有的 `CHANGELOG.md` 是上游自己的產品變更記錄，不動它 |
