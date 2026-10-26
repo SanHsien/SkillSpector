@@ -28,6 +28,7 @@ def load_tool(name: str):
 divergence = load_tool("check_divergence")
 pins = load_tool("check_pin_bounds")
 freshness = load_tool("check_dependency_freshness")
+upstream = load_tool("check_upstream_updates")
 
 
 def test_divergence_registry_parser_ignores_other_tables() -> None:
@@ -228,3 +229,25 @@ def test_a_token_is_sent_when_the_environment_has_one(monkeypatch) -> None:
     freshness.fetch_github_release("actions/checkout")
     authorization = next(value for key, value in seen.items() if key.lower() == "authorization")
     assert authorization == "Bearer secret-token"
+
+
+def test_a_held_workflow_pin_is_not_a_failed_check() -> None:
+    """The documented exit (`# freshness-hold:`) used to turn the row into CHECK FAILED.
+
+    A hold replaces the `# vX.Y.Z` comment, so the row has no declared minimum;
+    `not minimum` then scored it as a check that could not be made and the
+    fork-owned gate stayed red -- the hold silenced nothing.
+    """
+    packages = freshness.parse_workflow_actions(
+        "      - uses: actions/checkout@" + "a" * 40 + " # freshness-hold: stay on v4 for now\n",
+        "codeql.yml",
+    )
+
+    rows = freshness.collect_status(packages, lambda _name: "7.0.1", deferrals={})
+
+    assert rows[0]["check_failed"] is False
+    assert freshness.needs_review(rows[0]) is False
+    report = freshness.render_markdown([], rows)
+    assert "HELD: stay on v4 for now" in report
+    assert all("CHECK FAILED" not in line for line in report.splitlines() if "checkout" in line)
+    assert "freshness-hold" not in rows[0]["requirement"]

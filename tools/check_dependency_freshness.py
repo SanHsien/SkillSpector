@@ -216,7 +216,9 @@ def parse_workflow_actions(text: str, source: str) -> list[dict[str, str]]:
             {
                 "name": action,
                 "minimum": minimum,
-                "requirement": f"{action}@{comment or ref[:12]}",
+                # A hold's comment is the reason, not the version; showing it as
+                # the requirement would also make two holds on one pin look split.
+                "requirement": f"{action}@{ref[:12] if hold else comment or ref[:12]}",
                 "source": source,
                 "hold": hold,
                 "kind": "github-action",
@@ -350,7 +352,11 @@ def collect_status(
                 **package,
                 "latest": latest or "unknown",
                 "outdated": bool(minimum and latest and is_newer_version(latest, minimum)),
-                "check_failed": not minimum or latest is None or incomparable,
+                # A held pin has no declared minimum by construction (the hold
+                # comment replaces `# vX.Y.Z`); that is a decision, not a failure.
+                "check_failed": (not minimum and not package.get("hold"))
+                or latest is None
+                or incomparable,
                 "deferred_reason": reason if deferred else "",
             }
         )
@@ -370,7 +376,7 @@ def _render_table(rows: list[dict[str, object]]) -> list[str]:
     for row in rows:
         if row["check_failed"]:
             status = "CHECK FAILED"
-        elif row.get("hold") and row["outdated"]:
+        elif row.get("hold") and (row["outdated"] or not row.get("minimum")):
             status = f"HELD: {row['hold']}"
         elif row.get("deferred_reason") and row["outdated"]:
             status = f"DEFERRED at {row['latest']}: {row['deferred_reason']}"
