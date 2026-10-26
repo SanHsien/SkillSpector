@@ -251,3 +251,17 @@ def test_a_held_workflow_pin_is_not_a_failed_check() -> None:
     assert "HELD: stay on v4 for now" in report
     assert all("CHECK FAILED" not in line for line in report.splitlines() if "checkout" in line)
     assert "freshness-hold" not in rows[0]["requirement"]
+
+
+def test_missing_gh_is_reported_as_unavailable_not_a_crash(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`gh` absent from PATH raised FileNotFoundError out of the whole check."""
+
+    def no_gh(*_args, **_kwargs):
+        raise FileNotFoundError("gh")
+
+    monkeypatch.setattr(upstream.subprocess, "run", no_gh)
+    baseline = {"repo": "https://github.com/NVIDIA/SkillSpector.git"}
+
+    assert upstream.collect_new_tickets(baseline, "pr") is None
