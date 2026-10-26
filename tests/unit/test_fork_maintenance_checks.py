@@ -273,3 +273,13 @@ def test_a_malformed_deferrals_file_means_no_deferrals(tmp_path: Path, content: 
     path.write_text(content, encoding="utf-8")
 
     assert freshness.load_deferrals(path) == {}
+
+
+def test_an_unheld_pin_without_a_version_is_still_a_failed_check() -> None:
+    packages = freshness.parse_workflow_actions(
+        "      - uses: actions/checkout@" + "a" * 40 + " # pinned for reasons\n", "codeql.yml"
+    )
+
+    rows = freshness.collect_status(packages, lambda _name: "7.0.1", deferrals={})
+
+    assert rows[0]["check_failed"] is True
