@@ -99,11 +99,16 @@ def load_deferrals(path: Path = DEFERRALS_PATH) -> dict[str, tuple[str, str]]:
     The file is optional: a fork with no live deferrals need not carry one.
     """
     try:
-        entries = json.loads(path.read_text(encoding="utf-8")).get("deferrals", {})
+        document = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
+    # A file whose root is a list, string or null is as unusable as invalid
+    # JSON; treat it the same way instead of crashing the whole report.
+    entries = document.get("deferrals", {}) if isinstance(document, dict) else {}
+    if not isinstance(entries, dict):
+        return {}
     deferrals: dict[str, tuple[str, str]] = {}
-    for name, entry in (entries or {}).items():
+    for name, entry in entries.items():
         if not isinstance(entry, dict):
             continue
         latest = str(entry.get("deferredLatest", "")).strip()

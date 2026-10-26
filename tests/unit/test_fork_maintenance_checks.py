@@ -265,3 +265,11 @@ def test_missing_gh_is_reported_as_unavailable_not_a_crash(
     baseline = {"repo": "https://github.com/NVIDIA/SkillSpector.git"}
 
     assert upstream.collect_new_tickets(baseline, "pr") is None
+
+
+@pytest.mark.parametrize("content", ["[]", "null", '"text"', "{not json"])
+def test_a_malformed_deferrals_file_means_no_deferrals(tmp_path: Path, content: str) -> None:
+    path = tmp_path / "dependency-deferrals.json"
+    path.write_text(content, encoding="utf-8")
+
+    assert freshness.load_deferrals(path) == {}
