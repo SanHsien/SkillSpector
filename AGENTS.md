@@ -101,3 +101,7 @@ YARA 簽章 + OSV.dev 即時 CVE 查詢），Stage 2 可選的 LLM 語意分析�
   `tools/upstream_baseline.json` 的 commit／PR／issue 三軸水位並輸出
   `upstream-review-report.md`；`.github/workflows/upstream-check.yml` 每週排程一次。
   決策記錄見 [`docs/DECISIONS.md`](docs/DECISIONS.md)，流程見 [`FORK.md`](FORK.md)。
+
+## 路線圖
+
+- `ROADMAP.md` 是本 repo 後續工作的單一真相源。完成或新增工作時，在同一個 commit 更新它：做完的列刪掉、新工作加進去。不要在其他文件另列待辦。
