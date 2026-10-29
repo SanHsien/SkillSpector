@@ -38,7 +38,7 @@ Windows 上安裝、跑起來、驗證的最短路徑。
 git clone https://github.com/SanHsien/SkillSpector.git
 cd SkillSpector
 uv sync --all-extras          # 安裝含 dev、mcp、langgraph-dev 三個 extras
-uv run skillspector --version # 應輸出 SkillSpector v2.11.0
+uv run skillspector --version # 應輸出 SkillSpector v2.12.0
 uv run skillspector scan .\my-skill\
 ```
 

@@ -9,7 +9,6 @@ SkillSpector 是 skill 安裝前的供應鏈掃描器，提供靜態分析與選
 ## 近期：可以直接動手
 | 項目 | 為什麼 | 驗收方式 | 建議執行者 | 證據 |
 | --- | --- | --- | --- | --- |
-| 修正繁中快速開始的過期版本範例 | README 的預期輸出與本 repo 套件版本不同 | 依 `pyproject.toml` 與 `uv run skillspector --version` 更新 README 範例；確認安裝來源與 Windows stdout 提示仍符合現有契約 | Claude Haiku | README.md:41；pyproject.toml:7 |
 | 審查水位後的上游修正與 release | 最近一次 workflow 成功早於上游 v2.13.0–v2.13.2（2026-10-29 `gh` 查詢）；Upstream check 綠燈不涵蓋 release 軸 | 按 FORK.md 比對 tools/upstream_baseline.json 之後的 commit／PR／issue，逐項裁決；採用前核對 DIVERGENCE.md，Quick 與完整 Windows gate 通過才推進水位 | Codex | tools/upstream_baseline.json；2026-10-29 `gh` 查詢 |
 
 ## 中期：等條件成立再做
