@@ -452,3 +452,26 @@ PR（#528→#532、#538→#539、#552→#561、#554→#557、#574→#575，#531 
 **PR／issue 軸**：#581–#902 中 132 筆已合併、隨本次同步進來；11 筆 closed；63 筆 open 等合併。其中 #617、#636 是 Windows 相容修正，與本 fork 既有的 Windows 分岔高度重疊，合併後有機會再刪列。本 fork 回貢的 #486 已關閉，接手的 #490 仍未合併，`scripts/compare_scan_accuracy.py` 那列保留。issue #575–#901 共 111 筆（58 closed、53 open），沒有需要本 fork 單獨處置的。
 
 **Actions 恢復**：本 repo 自 2026-10-19 起所有 workflow 卡在 queued，API 回 `Actions has been disabled for this repository`，但 `actions/permissions` 顯示已啟用。根因是 GitHub 對 fork 的工作流程保護，需擁有者在 Actions 分頁按啟用；維護者於 2026-10-24 點了之後恢復。停用期間建立的 7 個 Dependabot 動態 run 仍取消不了，不影響之後的推送。
+
+## 2026-10-30：審查上游 release 軸與 52 筆 commits（PR #952、issue #951）
+
+**決定**：
+1. **Release 軸審查**：審查上游 `v2.13.0`（2026-10-16，PR #833）、`v2.13.1`（2026-10-23）、`v2.13.2`（2026-10-28，PR #922）三個 release。經比對其 Git commit 圖譜，此三筆發布均源自 `yashraj/v2.13.0-base` 維護分支（maintenance baseline），其歷史未併入 `upstream/main`，且遺漏 `main` 已納入之 `google-auth[requests]` 等依賴。依 `FORK.md` 與 `AGENTS.md`「對齊上游預設分支 `upstream/main`」之既有原則，不單獨採用維護分支。其回補之修復中，#779 已在基準 `d7338f58` 內；#917、#921 只在 `upstream/main`，屬第 2 點延後的 52 筆，本 fork 尚未帶入。
+2. **Commit 軸審查**：審查上游 `d7338f58..54921c8c`（52 個 commits、98 個檔案變更）。上游 `pyproject.toml` 維持版本號 `2.12.0`（放寬 Python 支援至 `<3.16`）。因包含 OH1、P2、PE3、MP3、TP4 等靜態分析契約變更，依 `ROADMAP.md` 規則轉入「中期：配合新掃描器版本安排下游 pin 與 fingerprint 驗收」觸發條件，待與下游（agent-skills、book-to-skill、agent-marketing-skills）協調後再行採用代碼；52 筆整批延後，未逐筆裁決（逐筆裁決列在 `ROADMAP.md` 近期表），commit 水位維持 `d7338f58`，PR 水位推進至 952、issue 水位推進至 951。
+3. **分岔與 Pin 邊界驗證**：
+   - `tools/check_divergence.py`：比對基準 SHA `d7338f58`，14 個分岔檔案與 `DIVERGENCE.md` 登記的 14 列完全吻合。
+   - `tools/check_pin_bounds.py`：檢查 29 個直接依賴全數合規。
+   - 本 fork 保留的五個安全性修復版本（`cryptography 50.0.1`、`setuptools 84.2.1`、`mcp 1.30.0`、`filelock 4.2.4`、`virtualenv 21.14.5`）維持不變。
+4. **PR／Issue 軸分流裁決**：
+   - PR #903–#952（31 筆）：
+     - 16 筆已由上游 `main` 合併：#903（REST DELETE 棄權）、#904（defer chat client imports）、#906（CRLF Python shebang）、#907（ASCII Unicode folding 效能最佳化）、#912（Shell quote ownership）、#914（OpenAI-compatible 自訂 header）、#915（四個 advisory 依賴刷新）、#917（wrapper parsing 與 TP4 批次限制）、#919（YARA 規則缺失報 incomplete）、#921（Node 斷言模板訊息完整性）、#924（CLI baseline input overwrite 保護）、#934（Markdown 參照 destination 惡意 payload 偵測）、#938（遞迴子輸入保護）、#939（Linked ZIP 覆蓋率對齊）、#943（PE3 glab setting literal 誤報排除）、#945（TP4 批次容量與 18 分鐘 deadline）。
+     - 1 筆為維護分支發版：#922（Release SkillSpector 2.13.2），裁決不採用分支。
+     - 14 筆仍 open 等待上游評估／合併：#909, #913, #916, #929, #932, #940, #942, #944, #946, #947, #948, #949, #950, #952。
+   - Issue #902–#951（18 筆）：
+     - 9 筆上游已關閉：#905, #910, #911, #918, #923, #926, #933, #935, #936。
+     - 9 筆仍 open 等待上游：#908, #925, #927, #928, #930, #931, #937, #941, #951。
+5. **Windows 驗證**：
+   - `tools/dev_check.ps1 -Quick` 通過（Ruff check／format、Version smoke、Divergence registry、Pin bounds、Dependency freshness report）。
+   - 完整 Windows gate 本次未跑（約 29 分鐘），只跑 `-Quick`；commit 軸未同步程式碼，產品樹未變。
+6. **下游影響與中期協調**：
+   - 本次未逐筆裁決 52 筆，未判定其對本 fork 的影響；其中含偵測與掃描契約修正（如 #917、#934、#860、#826），採用前本 fork 不具備這些修正。後續待維護者與下游專案排定 fingerprint 重新驗收期程，再啟動代碼同步。

@@ -4,12 +4,12 @@
 > 現況段的數字是 2026-10-29 依 `main` `b0e7b1c0b572` 查的快照，開工前先重查 GitHub。
 
 ## 現況
-SkillSpector 是 skill 安裝前的供應鏈掃描器，提供靜態分析與選配 LLM 分析，fork 維持 Windows 驗收與明列的分岔（[AGENTS](AGENTS.md)、[分岔登記](docs/DIVERGENCE.md)）。2026-10-29 `gh` 查詢顯示 CI、CodeQL、Upstream check 最近成功，Dependabot／Code scanning 均為 0；上游已有較水位新的 release，須重新審查，不能沿用舊報告的「沒有新增」或舊告警（2026-10-29 `gh` 查詢；`tools/upstream_baseline.json`）。
+SkillSpector 是 skill 安裝前的供應鏈掃描器，提供靜態分析與選配 LLM 分析，fork 維持 Windows 驗收與明列的分岔（[AGENTS](AGENTS.md)、[分岔登記](docs/DIVERGENCE.md)）。2026-10-29 `gh` 查詢顯示 CI、CodeQL、Upstream check 最近成功，Dependabot／Code scanning 均為 0。2026-10-30 完成 release 軸審查與 PR／issue 分流（[維護決策](docs/DECISIONS.md)）：查核上游 v2.13.0–v2.13.2 為獨立維護分支未合入 main，主線維持對齊 `upstream/main`；52 筆 commit（至 `54921c8c`）整批延後、未逐筆裁決，commit 水位維持 `d7338f58`，待中期 fingerprint 協調（PR #903–#952 共 31 筆、issue #902–#951 共 18 筆已分流），`-Quick` 閘門通過，分岔登記 14 筆維持一致。
 
 ## 近期：可以直接動手
 | 項目 | 為什麼 | 驗收方式 | 建議執行者 | 證據 |
 | --- | --- | --- | --- | --- |
-| 審查水位後的上游修正與 release | 最近一次 workflow 成功早於上游 v2.13.0–v2.13.2（2026-10-29 `gh` 查詢）；Upstream check 綠燈不涵蓋 release 軸 | 按 FORK.md 比對 tools/upstream_baseline.json 之後的 commit／PR／issue，逐項裁決；採用前核對 DIVERGENCE.md，Quick 與完整 Windows gate 通過才推進水位 | Codex | tools/upstream_baseline.json；2026-10-29 `gh` 查詢 |
+| 逐筆裁決 `d7338f58..54921c8c` 的 52 筆 commit | 2026-10-30 審查將 52 筆整批延後、未逐筆裁決；commit 水位仍是 `d7338f58` | 清冊逐筆裁決（commit SHA 或對應 PR → 裁決 → 涉及的掃描契約，如 OH1／P2／PE3／MP3／TP4）；裁決寫入 docs/DECISIONS.md；採用者通過 Quick 與完整 Windows gate 才推進 commit 水位 | Codex | docs/DECISIONS.md「2026-10-30」第 2 點；docs/UPSTREAM.md |
 
 ## 中期：等條件成立再做
 | 項目 | 觸發條件 | 驗收方式 | 建議執行者 | 證據 |
