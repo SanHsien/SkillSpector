@@ -475,3 +475,94 @@ PR（#528→#532、#538→#539、#552→#561、#554→#557、#574→#575，#531 
    - 完整 Windows gate 本次未跑（約 29 分鐘），只跑 `-Quick`；commit 軸未同步程式碼，產品樹未變。
 6. **下游影響與中期協調**：
    - 本次未逐筆裁決 52 筆，未判定其對本 fork 的影響；其中含偵測與掃描契約修正（如 #917、#934、#860、#826），採用前本 fork 不具備這些修正。後續待維護者與下游專案排定 fingerprint 重新驗收期程，再啟動代碼同步。
+
+## 2026-10-31：逐筆裁決上游 `d7338f58..54921c8c` 的 52 筆 commit（完成路線圖近期項目）
+
+**決定**：
+逐筆審核上游 `d7338f58..54921c8c`（52 個 commits、98 個檔案變更，版本維持 2.12.0），完成全數 52 筆 commit 的清冊裁決與涉及掃描契約對齊。
+**裁決結果**：52 筆 commit 全數維持**延後採用代碼**（待中期協調下游重新驗收 fingerprint 後隨整批同步推進；不單獨提前採用），commit 水位維持 `d7338f58`。
+
+**理由與契約分析**：
+1. **掃描契約連動與下游 Fingerprint**：
+   此 52 筆 commit 深度涉及多項核心靜態與行為掃描契約變更：
+   - **OH1（DB-API 參數綁定識別，PR #890，10 筆 commits）**：`53a7ebf5`、`b3545b2a`、`8400b6ce` 三筆實質變更，加 6 筆 merge main 進分支與 PR 的 merge commit `e7172462`；識別 DB-API canonical parameter binding 與安全查詢控制，調整 SQL 注入判定邏輯。
+   - **P2 / PE3 / MP3 / TM1 / SC3 / AS2（7 筆 commits）**：
+     - **P2**：`d501c0d5`（PR #622）、`caa1caa8`（PR #934）排除結構性良性標頭註解，並確保參照目標排除於良性豁免之外；`d56c2f15`（PR #874）確保 PowerShell 腳本具備 SC3 與 P2 掃描覆蓋。
+     - **PE3**：`54921c8c`（PR #943）忽略 Python glab setting literal 誤報。
+     - **MP3**：`2de9b387`（PR #893）新增 agent-memory 檔案寫入評分為 MP3 memory manipulation finding。
+     - **TM1**：`a59a3bd2`（PR #903）在 REST 路由表中對大寫 HTTP DELETE 棄權。
+     - **AS2**：`3ae98afc`（PR #881）擴充比對 Claude Desktop、Claude Code、Cline、Roo Code 的 MCP 設定檔。
+   - **TP4 / 掃描容量與 Deadline（PR #917, #945, #845，5 筆 commits）**：`d988f33d` 與其 merge `d3f2e973`（#917）、`4e5777d0` 與其 merge `b5987a33`（#945）配置 TP4 批次容量、修復 sudo 指令包裝解析，並將 workflow deadline 延長至 18 分鐘；`6b0ebe12`（#845）讓結構化 LLM 呼叫無結果時重試，影響 TP4 分析行為。
+   - **YARA 規則與勒索軟體偵測（PR #860, #919，2 筆 commits）**：`3ca7def3` 更新二進位規則偵測多行 walk-encrypt-overwrite 勒索軟體；`85a236d2` 自訂規則目錄不存在時標記 incomplete。
+   - **AST 解析與語法重建（PR #882, #898, #906, #912, #921，7 筆 commits）**：`cb6c96e1`、`123ec27b`、`a5425e59`（#921 的 merge）、`c7f7f3c5`、`ed602e5d`、`076127b1`、`5203c3f4` 修正 Node 斷言模板訊息完整性、TypeScript 保守路徑、CRLF Python shebang、Shell quote lexical ownership、動詞清單 fail-closed 重建及 Markdown fence 指令合併。
+   - **報表、Coverage 與批次掃描（PR #805, #851, #938, #939, #772, #763，6 筆 commits）**：`ff0e77ee`、`75ed27bc`、`6498f0ea`、`13ebdd25`、`fdce443b`、`d3859dca` 保留 compacted finding 內文、ZIP 容器覆蓋率指標對齊、遞迴子輸入報告保留、批次 gap-fill 計分與取消測試。
+   - **CLI / Provider / LLM 批次與效能（10 筆 commits）**：`6a0d0995`、`f1778f55`、`7c04f8b4`、`8a77a4ee`、`e6d52ca8`、`e5b7b3aa`、`0e4b1bab`、`2d439879`、`e35b16c6`、`4ca1d7c6` 提供 baseline 輸入保護、Rich markup 避免跳脫、自訂 OpenAI header、遞迴 skill 數量上限、OpenCode 版本清單、LLM 批次 prompt 上限與共享限流器，以及延後 import 與 ASCII 免 Unicode folding 的效能優化。
+   - **依賴與配置（PR #864, #915，2 筆 commits）**：`914116bf` 刷新 4 個 lockfile advisory pins；`ae1cdf2f` 放寬至 Python 3.15。
+   - **其他分析器修正（PR #826, #776, #765，3 筆 commits）**：`492955f2` 追蹤 urllib request headers 中的憑證、`2b85712f` 檢查 JSON 設定檔內的 npx 指令（MCP rug-pull）、`1feb2c87` 修正 Pipenv 依賴提取與鎖定版本檢查。
+   - 以上九組合計 52 筆（10 + 7 + 5 + 2 + 7 + 6 + 10 + 2 + 3），每筆恰屬一組。
+
+   以上改動中，任何規則、評分或報表結構之變動，均會直接導致既有測試 skill 的 exact fingerprint 失效。因此，依照 `ROADMAP.md` 規則，此批變更必須轉入「中期：配合新掃描器版本安排下游 pin 與 fingerprint 驗收」觸發條件，待與下游專案（`agent-skills`、`book-to-skill`、`agent-marketing-skills`）協調重產 fingerprint 時再行整批代碼同步。
+2. **無共同祖先的分岔維護保守原則**：
+   本 fork 與上游無共同祖先，所有程式碼同步均需依 `FORK.md` 以三方差異（`git diff --binary | git apply -3 --index`）整批套用。挑選單一 commit 提前 cherry-pick 不僅會破壞上游線性歷史對齊，更會大幅增加未來整批同步時的合併衝突風險。
+3. **依賴刷新對本 fork 無急迫性**：
+   #915 升 anyio 4.14.2／certifi 2026.10.19／urllib3 2.8.0／langgraph-sdk 0.4.4；本 fork `uv.lock` 已是 4.15.1／2026.10.19／2.8.0／0.4.4，皆不低於上游，故 #915 的 lockfile 刷新對本 fork 無額外急迫性（2026-10-31 對 `uv.lock` 與 `gh api repos/NVIDIA/SkillSpector/pulls/915/files` 核實）。
+
+**52 筆 Commit 逐筆清冊與裁決**：
+
+| 編號 | Commit | 對應 PR | 涉及契約 / 範疇 | 裁決 | 說明與理由 |
+| --- | --- | --- | --- | --- | --- |
+|  1 | `53a7ebf5` | — | OH1 | 延後採用 | **test(oh1): cover bound SQL parameters and unsafe query controls**：標題為測試 commit：涵蓋已綁定參數的 SQL 與不安全查詢控制，行為變更見第 2、3 列；延後採用。 |
+|  2 | `b3545b2a` | — | OH1 | 延後採用 | **fix(oh1): recognize canonical DB-API parameter binding**：涉及 OH1 靜態分析契約（DB-API 參數綁定識別與安全查詢控制），改變 SQL finding 判定，影響下游 fingerprint；延後採用。 |
+|  3 | `8400b6ce` | — | OH1 | 延後採用 | **refactor(oh1): prove passive SQL setup once**：refactor：「被動 SQL 設定只證明一次」，併入 PR #890 的 OH1 變更整批評估；是否改變 finding 以整批同步後重產 fingerprint 實測為準；延後採用。 |
+|  4 | `b0e45e22` | #890 | OH1 | 延後採用 | **Merge branch 'main' into feat/christopherk/oh1-bound-sql**：merge commit（將 main 合入 OH1 分支），內容見其來源 PR #890（實質變更為第 1–3 列）；延後採用。 |
+|  5 | `225f7546` | #890 | OH1 | 延後採用 | **Merge branch 'main' into feat/christopherk/oh1-bound-sql**：merge commit（將 main 合入 OH1 分支），內容見其來源 PR #890（實質變更為第 1–3 列）；延後採用。 |
+|  6 | `dd9f06a7` | #890 | OH1 | 延後採用 | **Merge branch 'main' into feat/christopherk/oh1-bound-sql**：merge commit（將 main 合入 OH1 分支），內容見其來源 PR #890（實質變更為第 1–3 列）；延後採用。 |
+|  7 | `2b9f4512` | #890 | OH1 | 延後採用 | **Merge branch 'main' into feat/christopherk/oh1-bound-sql**：merge commit（將 main 合入 OH1 分支），內容見其來源 PR #890（實質變更為第 1–3 列）；延後採用。 |
+|  8 | `d988f33d` | #917 | TP4 | 延後採用 | **fix: correct sudo parsing and TP4 batch limits**：修正 sudo 指令包裝解析與 TP4 批次上限（PR #917）；影響 TP4 與指令解析判定；延後採用。 |
+|  9 | `d3f2e973` | #917 | Branch Merge | 延後採用 | **Merge pull request #917 from NVIDIA/yashraj/fix-parser-mcp-completeness**：PR #917 的 merge commit，內容見 `d988f33d`（第 8 列）；延後採用。 |
+| 10 | `d12fb956` | #890 | OH1 | 延後採用 | **Merge branch 'main' into feat/christopherk/oh1-bound-sql**：merge commit（將 main 合入 OH1 分支），內容見其來源 PR #890（實質變更為第 1–3 列）；延後採用。 |
+| 11 | `cb6c96e1` | #921 | Parser/AST | 延後採用 | **Fix Node assertion template message completeness**：修正 Node 斷言模板訊息完整性的誤判（PR #921）；改變 JavaScript 解析完整性判定；延後採用。 |
+| 12 | `123ec27b` | #921 | Parser/AST | 延後採用 | **Keep ambiguous TypeScript syntax on the conservative parser path**：TypeScript 語法有歧義時走保守 parser 路徑（PR #921）；改變 TypeScript 解析路徑；延後採用。 |
+| 13 | `a5425e59` | #921 | Parser/AST | 延後採用 | **Merge pull request #921 from NVIDIA/yashraj/fix-javascript-template-completeness**：PR #921 的 merge commit，內容見 `cb6c96e1`、`123ec27b`（第 11、12 列）；延後採用。 |
+| 14 | `ea2e457d` | #890 | OH1 | 延後採用 | **Merge branch 'main' into feat/christopherk/oh1-bound-sql**：merge commit（將 main 合入 OH1 分支），內容見其來源 PR #890（實質變更為第 1–3 列）；延後採用。 |
+| 15 | `e7172462` | #890 | OH1 | 延後採用 | **Merge pull request #890 from NVIDIA/feat/christopherk/oh1-bound-sql**：PR #890 的 merge commit，內容即第 1–3 列的 OH1 實質變更（加 6 筆 merge main）；涉及 OH1 契約（DB-API 參數綁定識別），改變 SQL finding 判定，影響下游 fingerprint；延後採用。 |
+| 16 | `914116bf` | #915 | Deps | 延後採用 | **fix(deps): refresh four advisory-affected lockfile pins (#915)**：上游 lockfile 刷新四個 advisory pins（anyio 4.14.2、certifi 2026.10.19、urllib3 2.8.0、langgraph-sdk 0.4.4）；本 fork `uv.lock` 已是 4.15.1、2026.10.19、2.8.0、0.4.4，皆不低於上游；延後採用。 |
+| 17 | `4ca1d7c6` | #907 | Perf/Artifacts | 延後採用 | **perf(security): avoid Unicode folding for ASCII characters (#907)**：ASCII 字元避免 Unicode folding 之效能優化；隨整批同步推進；延後採用。 |
+| 18 | `ae1cdf2f` | #864 | Config | 延後採用 | **feat: support Python 3.15 (#864)**：放寬 Python 支援上限至 3.15；本 fork 遵循上游 2.12.0 主幹；延後採用。 |
+| 19 | `85a236d2` | #919 | YARA | 延後採用 | **fix(yara): mark unavailable custom rule directories incomplete (#919)**：自訂規則目錄不可用時標記 incomplete（PR #919）；改變掃描完整性回報；延後採用。 |
+| 20 | `6a0d0995` | #924 | CLI | 延後採用 | **fix: preserve baseline input files when selecting output (#924)**：CLI baseline 輸入檔寫入保護；隨整批同步推進；延後採用。 |
+| 21 | `ed602e5d` | #912 | Parser/AST | 延後採用 | **fix(analyzer): bound shell quote completeness with lexical ownership (#912)**：Shell 引號語法 lexical ownership 邊界處理；改變 tool misuse 判定；延後採用。 |
+| 22 | `c7f7f3c5` | #906 | Parser/AST | 延後採用 | **fix(python): analyze extensionless scripts with a CRLF Python shebang (#906)**：支援無副檔名 CRLF shebang 腳本 AST 分析；改變執行表面覆蓋；延後採用。 |
+| 23 | `076127b1` | #898 | Reconstruction | 延後採用 | **Fix fail-closed on ordinary lists of verb names (#898)**：一般動詞清單之 fail-closed 安全重建邏輯修正；改變 finding 重建；延後採用。 |
+| 24 | `5203c3f4` | #882 | Reconstruction | 延後採用 | **fix(static): stop Markdown code fence lines from merging shell lines into one marker directive (#882)**：避免 Markdown 程式碼區塊 shell 行合併為單一指令指示；改變靜態指令重構；延後採用。 |
+| 25 | `3ae98afc` | #881 | AS2 | 延後採用 | **fix(as2): match MCP config files of Claude Desktop, Claude Code, Cline and Roo Code (#881)**：AS2 代理窺探規則擴大匹配 Claude Desktop/Code/Cline/Roo 設定檔；改變 finding 判定；延後採用。 |
+| 26 | `d56c2f15` | #874 | P2/SC3 | 延後採用 | **fix(analyzers): keep SC3 and P2 coverage for PowerShell scripts (#874)**：PowerShell 腳本保留 SC3 與 P2 掃描覆蓋；改變 PowerShell 分析結果；延後採用。 |
+| 27 | `3ca7def3` | #860 | YARA | 延後採用 | **fix(yara): detect multiline walk-encrypt-overwrite ransomware (#860)**：偵測多行 walk-encrypt-overwrite 勒索軟體（PR #860）；新增 YARA 偵測，改變掃描結果；延後採用。 |
+| 28 | `492955f2` | #826 | Behavioral | 延後採用 | **fix(analyzer): track credentials in urllib request headers (#826)**：Taint tracking 追蹤 urllib 標頭憑證洩漏；改變行為分析 finding；延後採用。 |
+| 29 | `ff0e77ee` | #805 | Report/Models | 延後採用 | **fix(report): keep missing references as non-blocking caveats (#805)**：未解析參照維持為 non-blocking caveats；改變報表完整性語意；延後採用。 |
+| 30 | `2b85712f` | #776 | MCP Rug-Pull | 延後採用 | **fix(mcp-rug-pull): inspect npx commands in JSON configs (#776)**：JSON 設定檔內 npx 指令檢查；改變 MCP rug-pull finding；延後採用。 |
+| 31 | `1feb2c87` | #765 | Supply Chain | 延後採用 | **Fix Pipenv dependency extraction and locked version checks (#765)**：Pipenv 依賴提取與鎖定版本檢查；改變供應鏈分析；延後採用。 |
+| 32 | `e6d52ca8` | #914 | Provider | 延後採用 | **feat(providers): support custom OpenAI-compatible HTTP headers (#914)**：OpenAI 相容 provider 支援自訂 HTTP headers；隨整批同步推進；延後採用。 |
+| 33 | `e5b7b3aa` | #904 | Provider | 延後採用 | **perf(providers): defer chat client imports from metadata path (#904)**：Provider metadata 路徑延後 import chat client；效能優化；延後採用。 |
+| 34 | `f1778f55` | #899 | CLI | 延後採用 | **fix(cli): render error text literally instead of as Rich markup (#899)**：CLI 錯誤訊息原樣輸出防 Rich markup 注入；隨整批同步推進；延後採用。 |
+| 35 | `7c04f8b4` | #876 | CLI | 延後採用 | **perf(cli): defer scan imports for version output (#876)**：CLI --version 延後 import 掃描模組；效能優化；延後採用。 |
+| 36 | `75ed27bc` | #851 | Report/Models | 延後採用 | **fix(report): preserve each compacted occurrence's finding text (#851)**：報表保留已壓縮 finding 的原始文字；改變報告 JSON/MD 輸出；延後採用。 |
+| 37 | `8a77a4ee` | #847 | CLI | 延後採用 | **feat(cli): configure the recursive skill count limit (#847)**：新增遞迴 skill 數量上限配置；隨整批同步推進；延後採用。 |
+| 38 | `6b0ebe12` | #845 | LLM/TP4 | 延後採用 | **fix(llm): retry structured calls that return no result (#845)**：結構化 LLM 呼叫無結果時自動重試；影響 TP4 分析行為；延後採用。 |
+| 39 | `d3859dca` | #763 | Test/Batch | 延後採用 | **test(batch): cover pooled model cancellation and slot recovery (#763)**：批次掃描模型取消與 slot 回收測試；隨整批同步推進；延後採用。 |
+| 40 | `0e4b1bab` | #713 | Provider | 延後採用 | **feat(providers): accept OpenCode 1.18.31-1.19.4 through an explicit verified set (#713)**：支援 OpenCode 1.18.31-1.19.4 版本清單；隨整批同步推進；延後採用。 |
+| 41 | `d501c0d5` | #622 | P2 | 延後採用 | **fix(analyzers): carve out structurally benign P2 header comments (#622)**：排除結構性良性的 P2 標頭註解（PR #622）；改變 P2 finding 判定；延後採用。 |
+| 42 | `4e5777d0` | #945 | TP4 | 延後採用 | **feat: configure TP4 capacity and extend the workflow deadline**：新增 TP4 容量設定並延長 workflow deadline（PR #945）；延後採用。 |
+| 43 | `b5987a33` | #945 | Branch Merge | 延後採用 | **Merge pull request #945 from NVIDIA/yashraj/configurable-scan-limits**：PR #945 的 merge commit，內容見 `4e5777d0`（第 42 列）；延後採用。 |
+| 44 | `2de9b387` | #893 | MP3 | 延後採用 | **Score writes to agent-memory files as MP3 memory manipulation (#893)**：Agent 記憶檔案寫入評分為 MP3 記憶竄改；改變 MP3 finding 判定；延後採用。 |
+| 45 | `a59a3bd2` | #903 | TM1 | 延後採用 | **fix(tm1): abstain on uppercase HTTP DELETE verbs in REST route tables (#903)**：REST 路由表大寫 HTTP DELETE 棄權；減少 TM1 誤報；延後採用。 |
+| 46 | `13ebdd25` | #939 | Coverage | 延後採用 | **fix(coverage): account for inspected linked ZIP containers (#939)**：鏈結 ZIP 容器檢查之覆蓋率計數對齊；改變覆蓋率指標；延後採用。 |
+| 47 | `6498f0ea` | #938 | CLI/Report | 延後採用 | **fix(cli): preserve recursive child inputs when writing reports (#938)**：報表寫入時保留遞迴子輸入；改變多層級 skill 報表結構；延後採用。 |
+| 48 | `fdce443b` | #772 | Batch Scan | 延後採用 | **fix(batch): score gap-fill findings (#772)**：批次掃描 gap-fill finding 計分修正；改變批次報告計分；延後採用。 |
+| 49 | `2d439879` | #855 | LLM/Semantic | 延後採用 | **fix(llm): keep CLI prompts under MAX_INPUT_BYTES when batching large files (#855)**：大檔批次處理時確保 CLI prompt 小於 MAX_INPUT_BYTES；隨整批同步推進；延後採用。 |
+| 50 | `e35b16c6` | #856 | LLM/Semantic | 延後採用 | **fix(security-discovery): fan batches out through the shared LLM limiter (#856)**：語意安全探索批次透過共享 LLM 速率限制器 fan-out；隨整批同步推進；延後採用。 |
+| 51 | `caa1caa8` | #934 | P2 | 延後採用 | **fix(p2): keep reference destinations out of the benign-header exemption (#934)**：讓參照目的地不落入良性標頭豁免（PR #934），收斂 #622 的豁免範圍；改變 P2 finding 判定；延後採用。 |
+| 52 | `54921c8c` | #943 | PE3 | 延後採用 | **fix(pe3): ignore exact Python glab setting literals (#943)**：忽略 Python glab 設定字面值誤報；改變 PE3 finding 判定；延後採用。 |
+
+**Windows 驗證**：
+執行 `tools/dev_check.ps1 -Quick`，Ruff check／format 全數通過，版本 smoke 輸出 `SkillSpector v2.12.0`，Divergence registry 14 筆吻合，Locked dependency bounds 29 筆合規，Dependency freshness report 產出正常。本次未採用上游 commit 代碼，產品樹維持乾淨，commit 水位維持 `d7338f58`。

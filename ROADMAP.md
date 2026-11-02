@@ -4,17 +4,17 @@
 > 現況段的數字是 2026-10-29 依 `main` `b0e7b1c0b572` 查的快照，開工前先重查 GitHub。
 
 ## 現況
-SkillSpector 是 skill 安裝前的供應鏈掃描器，提供靜態分析與選配 LLM 分析，fork 維持 Windows 驗收與明列的分岔（[AGENTS](AGENTS.md)、[分岔登記](docs/DIVERGENCE.md)）。2026-10-29 `gh` 查詢顯示 CI、CodeQL、Upstream check 最近成功，Dependabot／Code scanning 均為 0。2026-10-30 完成 release 軸審查與 PR／issue 分流（[維護決策](docs/DECISIONS.md)）：查核上游 v2.13.0–v2.13.2 為獨立維護分支未合入 main，主線維持對齊 `upstream/main`；52 筆 commit（至 `54921c8c`）整批延後、未逐筆裁決，commit 水位維持 `d7338f58`，待中期 fingerprint 協調（PR #903–#952 共 31 筆、issue #902–#951 共 18 筆已分流），`-Quick` 閘門通過，分岔登記 14 筆維持一致。
+SkillSpector 是 skill 安裝前的供應鏈掃描器，提供靜態分析與選配 LLM 分析，fork 維持 Windows 驗收與明列的分岔（[AGENTS](AGENTS.md)、[分岔登記](docs/DIVERGENCE.md)）。2026-10-29 `gh` 查詢顯示 CI、CodeQL、Upstream check 最近成功，Dependabot／Code scanning 均為 0。2026-10-30 完成 release 軸審查與 PR／issue 分流（[維護決策](docs/DECISIONS.md)）：查核上游 v2.13.0–v2.13.2 為獨立維護分支未合入 main，主線維持對齊 `upstream/main`；PR #903–#952 共 31 筆、issue #902–#951 共 18 筆已分流。2026-10-31 完成路線圖近期項目：上游 `d7338f58..54921c8c` 的 52 筆 commit 已全數完成逐筆清冊裁決（[維護決策](docs/DECISIONS.md)），因涵蓋 OH1、P2、PE3、MP3、TP4、SC3、AS2、TM1、YARA 等掃描契約變更，裁決全數維持延後採用代碼、待中期下游協調 fingerprint，commit 水位維持 `d7338f58`，`-Quick` 閘門通過，分岔登記 14 筆維持一致。
 
 ## 近期：可以直接動手
 | 項目 | 為什麼 | 驗收方式 | 建議執行者 | 證據 |
 | --- | --- | --- | --- | --- |
-| 逐筆裁決 `d7338f58..54921c8c` 的 52 筆 commit | 2026-10-30 審查將 52 筆整批延後、未逐筆裁決；commit 水位仍是 `d7338f58` | 清冊逐筆裁決（commit SHA 或對應 PR → 裁決 → 涉及的掃描契約，如 OH1／P2／PE3／MP3／TP4）；裁決寫入 docs/DECISIONS.md；採用者通過 Quick 與完整 Windows gate 才推進 commit 水位 | Codex | docs/DECISIONS.md「2026-10-30」第 2 點；docs/UPSTREAM.md |
 
 ## 中期：等條件成立再做
 | 項目 | 觸發條件 | 驗收方式 | 建議執行者 | 證據 |
 | --- | --- | --- | --- | --- |
 | 配合新掃描器版本安排下游 pin 與 fingerprint 驗收 | 決定採用會改版本或掃描契約的上游更新 | 向 agent-skills、book-to-skill、agent-marketing-skills 維護者提供版本與原因碼差異；各下游在自己的任務核對可取得的精確 commit、重產 fingerprint，正常 gate 通過，不在本 repo 代改 | Codex | docs/DECISIONS.md:448-450 |
+| 整批同步 `d7338f58..54921c8c`（含偵測修正 #860、#917、#934、#826） | 維護者排定下游 fingerprint 重新驗收期程。與上一列互為前置：上一列的觸發條件是「決定採用」，本列的觸發條件是「排定下游期程」，兩者原本互相等待，由維護者排定期程來打破 | Quick 加完整 Windows gate 後推進 `reviewed_through`；逐筆裁決 | Codex | docs/DECISIONS.md 2026-10-30 條目與 docs/UPSTREAM.md |
 | 上游涵蓋 fork 修補後解除分岔 | 上游合併對應產品／測試修正或鎖檔含必要安全版本 | 逐列按解除條件取上游版本，`check_divergence.py` 與 `check_pin_bounds.py` 通過，完整 Windows gate 無新增失敗，不擴大 skip | Codex | [分岔登記](docs/DIVERGENCE.md)；docs/DECISIONS.md:423-444 |
 | 對實際 provider／MCP 路徑做有限驗收 | 維護者要採用該整合，並備妥登入或付費後端 | 先約定單一測試 skill 與用量上限；確認掃描建議、完整性欄位與 MCP 回傳可用，未呼叫的 provider 不宣稱已驗證 | 維護者 | AGENTS.md「tests」「canonical gate」；src/skillspector/mcp_server.py |
 
