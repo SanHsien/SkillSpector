@@ -20,6 +20,22 @@ on:
     branches: ["main"]
   push:
     branches: ["main"]
+    # SanHsien fork: skip push runs whose every changed file is a fork-only
+    # maintenance document that no CI job reads (see docs/DIVERGENCE.md).
+    # pull_request stays unfiltered: lint and test-unit are required checks.
+    paths-ignore:
+      - "AGENTS.md"
+      - "FORK.md"
+      - "NOTICE.md"
+      - "ROADMAP.md"
+      - "README.md"
+      - "CODE_OF_CONDUCT.md"
+      - "CHANGELOG.zh-TW.md"
+      - "docs/DECISIONS.md"
+      - "docs/DIVERGENCE.md"
+      - "docs/UPSTREAM.md"
+      - ".cursor/**"
+      - ".github/dependabot.yml"
 
 # Least privilege: these jobs only read the repo; no write scopes are needed.
 permissions:

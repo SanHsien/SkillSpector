@@ -32,7 +32,8 @@ Apache License 2.0 與完整 Git 歷史。
 | `docs/DECISIONS.md` | 新增：本 fork 的維護決策記錄骨架 |
 | `docs/DIVERGENCE.md` | 新增：逐檔登記本 fork 對上游持有檔案的修改的骨架（目前為空表） |
 | `.gitignore` | 修改：append 一個 fork 區塊，忽略 `.venv/`、`.pytest_cache/`、`.ruff_cache/`、`.mypy_cache/`、`htmlcov/` 與兩份生成報告 |
-| `.github/dependabot.yml` | 新增：`uv`（`pyproject.toml`/`uv.lock`）、`github-actions`、`npm`（`package.json`）、`docker`（`Dockerfile`）四個 ecosystem，每週檢查 |
+| `.github/dependabot.yml` | 新增：`uv`（`pyproject.toml`/`uv.lock`）、`github-actions`、`npm`（`package.json`）、`docker`（`Dockerfile`）四個 ecosystem，每週檢查；每個 ecosystem 以 `groups` 合併成最多一個版本更新 PR 與一個安全更新 PR |
+| GitHub 端停用的上游 workflow | `Publish GitHub Release`（`release.yml`）、`Scorecard supply-chain security`（`scorecard.yml`）、`Update PR branches`（`update-pr-branches.yml`）於 2026-11-21 以 `gh workflow disable` 停用，檔案未改，從 repo 內容看不出來；理由與還原方式見 [`docs/DECISIONS.md`](docs/DECISIONS.md) 2026-11-21 |
 | `tools/upstream_baseline.json` | 新增：上游同步水位（commit／PR／issue 三軸），起點為 fork 建立當下與上游 main 一致的 commit |
 | `tools/check_upstream_updates.py` | 新增：讀三軸水位，`git fetch` 比對新 commit，`gh pr/issue list --state all` 比對新工單，輸出 `upstream-review-report.md` |
 | `tools/check_dependency_freshness.py` | 新增：比對 `pyproject.toml` 宣告的 Python 依賴（PyPI）與 `.github/workflows/*.yml` 釘選的 GitHub Action（GitHub Releases API），支援 `# freshness-hold:` 與 `.github/dependency-deferrals.json`，輸出 `dependency-freshness-report.md` |
@@ -42,8 +43,8 @@ Apache License 2.0 與完整 Git 歷史。
 產品 `src/skillspector/`、`tests/`、`skills/`、`contrib/`、`extensions/`、
 `docs/{ANALYSIS_RESOURCE_BOUNDS,DEVELOPMENT,SUPPRESSION,...}.md`、`Makefile`、
 `pyproject.toml`、`uv.lock`、`LICENSE`、`SECURITY.md`、`CONTRIBUTING.md`、`CHANGELOG.md`、
-`THIRD_PARTY_NOTICES.md`、`.github/workflows/*` 以上游為準，本 fork 目前沒有對它們做任何修改；
-一旦有已記錄的 fork 修正，登記在 [`docs/DIVERGENCE.md`](docs/DIVERGENCE.md)。
+`THIRD_PARTY_NOTICES.md`、`.github/workflows/*` 以上游為準；已記錄的 fork 修正逐筆登記在
+[`docs/DIVERGENCE.md`](docs/DIVERGENCE.md)（`ci.yml` 的 push `paths-ignore` 也在那裡）。
 
 ## 已建立的維護自動化
 
@@ -66,7 +67,8 @@ Apache License 2.0 與完整 Git 歷史。
   而擋 commit）。
 - **Dependabot**：`.github/dependabot.yml` 涵蓋 `uv`（`pyproject.toml`/`uv.lock`）、
   `github-actions`、`npm`（`package.json`，pi extension 的 peer dependencies）、`docker`
-  （`Dockerfile` 的 digest-pin base image）四個 ecosystem，每週檢查。
+  （`Dockerfile` 的 digest-pin base image）四個 ecosystem，每週檢查；每個 ecosystem 用 `groups`
+  把更新合併成一個版本更新 PR 與一個安全更新 PR（每個 PR 都要跑 1～2 小時的完整 CI）。
 - **分岔與 pin bounds**：`tools/check_divergence.py` 強制 11 筆上游檔案分岔與
   `docs/DIVERGENCE.md` 一致；`tools/check_pin_bounds.py` 驗證 `uv.lock` 的直接依賴版本仍落在
   `pyproject.toml` 宣告範圍。兩者都進 `tools/dev_check.ps1`。

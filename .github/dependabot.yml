@@ -1,4 +1,8 @@
 version: 2
+# Every ecosystem groups its updates so one weekly run opens at most one
+# version-update PR and one security-update PR per ecosystem. Each PR runs the
+# full CI (test-unit is 1-2 hours), so one PR per package multiplied the cost;
+# see docs/DECISIONS.md 2026-11-21.
 updates:
   - package-ecosystem: "uv"
     directory: "/"
@@ -6,6 +10,13 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
     labels: ["dependencies", "python"]
+    groups:
+      uv:
+        applies-to: version-updates
+        patterns: ["*"]
+      uv-security:
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -15,6 +26,10 @@ updates:
     labels: ["dependencies", "github-actions"]
     groups:
       github-actions:
+        applies-to: version-updates
+        patterns: ["*"]
+      github-actions-security:
+        applies-to: security-updates
         patterns: ["*"]
 
   - package-ecosystem: "npm"
@@ -23,6 +38,13 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
     labels: ["dependencies", "npm"]
+    groups:
+      npm:
+        applies-to: version-updates
+        patterns: ["*"]
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: "docker"
     directory: "/"
@@ -30,3 +52,10 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
     labels: ["dependencies", "docker"]
+    groups:
+      docker:
+        applies-to: version-updates
+        patterns: ["*"]
+      docker-security:
+        applies-to: security-updates
+        patterns: ["*"]

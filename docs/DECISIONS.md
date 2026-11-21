@@ -566,3 +566,45 @@ PR（#528→#532、#538→#539、#552→#561、#554→#557、#574→#575，#531 
 
 **Windows 驗證**：
 執行 `tools/dev_check.ps1 -Quick`，Ruff check／format 全數通過，版本 smoke 輸出 `SkillSpector v2.12.0`，Divergence registry 14 筆吻合，Locked dependency bounds 29 筆合規，Dependency freshness report 產出正常。本次未採用上游 commit 代碼，產品樹維持乾淨，commit 水位維持 `d7338f58`。
+
+## 2026-11-21：GitHub 停用本 fork 的 Actions 後，削減 fork 用不到的 CI 用量
+
+**背景**：GitHub 以「scale of GitHub Actions usage」為由停用本 fork 的 workflow（Actions 頁顯示
+banner；API 的 `actions/permissions` 仍是 `enabled`、各 workflow `state` 仍是 `active`，所以
+API 看不出來）。最後一次 completed 的 run 是 11-10 22:30Z，11-14 起 Dependabot run 全部 queued。
+量測（10-31～11-16，每個 job 時長進位到整分鐘，Linux ×1）：51 個 run、1110 加權分鐘，約
+**522／週**；其中 `ci.yml` 10 個 run（4 push／6 PR）佔 1033，`test-unit` 一次 65～128 分鐘。
+11-04 05:59Z 一次 push 之後 2 分鐘內有 5 個 PR 的 CI 同時開跑、各約 2 小時，時間點對得上
+`update-pr-branches.yml` 把 main 合進每個開著的 PR（推論，未逐一核對 PR head）。
+
+**決定**：
+
+1. 以 `gh workflow disable` 停用三支 fork 用不到的上游 workflow，檔案不改（所以不產生分岔列）：
+
+   | workflow | id | 為什麼 fork 用不到 | 量到的用量 |
+   |---|---|---|---|
+   | `Publish GitHub Release`（`release.yml`） | 350968041 | 只在帶 `release:publish` 標籤的 PR 關閉時發版；本 fork 不發版，run 一律 skipped | 4 run／0 分 |
+   | `Scorecard supply-chain security`（`scorecard.yml`） | 350968042 | 上游的 OSSF 徽章 | 6 run／6 分 |
+   | `Update PR branches`（`update-pr-branches.yml`） | 350968044 | 上游多人協作流程；每次 push main 就把 main 合進每個 PR，讓每個 PR 重跑 2 小時 CI | 4 run／4 分，但放大 `ci.yml`（11-04 一次約 650 分） |
+
+2. `.github/dependabot.yml`（fork 持有）每個 ecosystem 加 `groups`，版本更新與安全更新各合併成一個
+   PR。10-25 那週 uv 一個套件一個 PR（#14、#15、#16），每個都跑一輪完整 CI。
+3. `ci.yml` 只在 `push` 加 `paths-ignore`，跳過「每個變動檔都是 CI 不讀的 fork 維護文件」的 push；
+   `pull_request` 不動（`lint`、`test-unit` 是必要檢查）。分岔登記於
+   [`DIVERGENCE.md`](DIVERGENCE.md)。10-24～11-02 的 commit 裡有 4 筆屬於這類（`bd8f2a55`、`d0834248`、`d1c3e5d9`、`23921df1`）。
+
+**預估效果**（推估，不是量測）：`paths-ignore` 約 -70 加權分／週（push CI 約 1.9 次／週 × 約 103
+分 × 約 35% 只改文件）；Dependabot 分組加上停用 `Update PR branches`，PR CI 從約 2.9 次／週降到
+約 1～1.5 次／週，約 -150～-190。合計約 **522 → 200～250／週（-50%～-60%）**。`test-unit` 本身
+的時長不動。
+
+**還原**：`gh workflow enable 350968041 -R SanHsien/SkillSpector`（或 `release.yml`），
+`350968042`（`scorecard.yml`）、`350968044`（`update-pr-branches.yml`）同理；`ci.yml` 照
+DIVERGENCE 那一列移除 `paths-ignore`；`dependabot.yml` 刪掉 `groups`。
+
+**何時重新檢視**：(1) 本 fork 開始發版或要 OSSF 分數時，重開對應 workflow；(2) Actions 重新啟用
+後兩週，每天看 `gh run list -R SanHsien/SkillSpector -L 5` 最新 run 的時間——停用門檻沒有官方
+數字，做完這些不保證不再被停；(3) 上游改 `ci.yml` 的 `on:` 區塊時照 DIVERGENCE 那一列處理。
+
+**限制**：本次 commit 推上去時本 fork 的 Actions 仍在停用狀態，不會有任何 CI run；驗證只有本機
+`tools/dev_check.ps1` 與 YAML 解析。
