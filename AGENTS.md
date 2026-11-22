@@ -63,13 +63,13 @@ YARA 簽章 + OSV.dev 即時 CVE 查詢），Stage 2 可選的 LLM 語意分析�
   Ruff check／format → CLI version smoke → 分岔登記與鎖定依賴邊界檢查 →
   dependency freshness report；不帶 `-Quick` 的完整模式再加
   `uv run pytest -m "not integration and not provider" tests/ -q`。
-- **⚠️ 虛擬環境放在 OneDrive 外，並用複製模式安裝**：本 repo 位於 OneDrive 底下，`.venv`
+- **⚠️ clone 在 OneDrive 底下時，虛擬環境放在 OneDrive 外，並用複製模式安裝**（本機正本在 `C:\GitHub\SkillSpector`，不在 OneDrive）：OneDrive 底下的 `.venv`
   的目錄會變成 Files On-Demand 佔位目錄（`ReparsePoint`），版本號一變，`uv sync` 刪舊
   `dist-info` 時就 `存取被拒 (os error 5)`；uv 預設的硬連結安裝還會讓快取檔被雲端過濾器認領，
   之後連 OneDrive 外的 venv 也裝不上（`os error 396`），留下「有 metadata、沒模組」的半殘
   套件（2026-09-11 實測 `jsonpatch`，pytest 收集階段 75 個錯誤）。**不要**用 `setx` 設全域
   `UV_PROJECT_ENVIRONMENT`——2026-09-06 就是全域值讓所有 uv 專案共用一個 venv，假造出 23 筆
-  與程式碼無關的紅燈（該全域值已移除）。每個指令前面帶上
+  與程式碼無關的紅燈（該全域值已移除）。這種情況下每個指令前面帶上
   `UV_PROJECT_ENVIRONMENT='C:\tmp\skillspector-fork-venv' UV_LINK_MODE=copy`，例：
   `UV_PROJECT_ENVIRONMENT='C:\tmp\skillspector-fork-venv' UV_LINK_MODE=copy uv run --python 3.13 pytest -m "not integration and not provider" tests/ -q`。
   套件半殘時用 `uv sync --all-extras --reinstall-package <名稱>` 修。在這個環境以外跑出的紅燈
